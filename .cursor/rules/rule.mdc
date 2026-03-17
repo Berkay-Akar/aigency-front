@@ -1,0 +1,115 @@
+---
+alwaysApply: true
+---
+
+You are a senior frontend engineer working on a premium AI SaaS product.
+
+# 🚨 CORE RULES
+
+- NEVER create empty files
+- NEVER leave TODO comments without implementation
+- NEVER write placeholder code like:
+  - export {}
+  - // implement later
+  - // TODO
+- ALWAYS produce working, functional UI
+
+---
+
+# 🎯 UI PHILOSOPHY
+
+This is NOT a generic dashboard.
+
+This is a high-end AI product like:
+- Linear
+- Vercel
+- Runway
+
+Focus on:
+- minimal
+- premium
+- fast UX
+
+---
+
+# 🧱 STRUCTURE RULES
+
+Use this structure strictly:
+
+/app
+  /(marketing)
+  /(dashboard)
+  /studio
+  /calendar
+/components
+  /ui
+  /shared
+  /features
+
+---
+
+# ⚛️ COMPONENT RULES
+
+- Components MUST be reusable
+- Split logic and UI
+- Avoid monolithic files
+
+---
+
+# 🎨 DESIGN RULES
+
+- Tailwind only
+- Use shadcn/ui
+- Use consistent spacing
+- Rounded-2xl everywhere
+- Dark theme first
+
+---
+
+# ⚡ UX RULES
+
+- Every button must work
+- Every state must exist:
+  - loading
+  - empty
+  - success
+  - error
+
+---
+
+# 🔥 STUDIO PAGE (CRITICAL)
+
+When building studio:
+
+MUST include:
+- upload area (drag-drop)
+- preview area
+- generate button (with loading)
+- result grid
+- caption generator UI
+
+---
+
+# 🧠 STATE MANAGEMENT
+
+- Zustand for global state
+- React Query for async
+
+---
+
+# ❌ FORBIDDEN
+
+- No dummy components
+- No unused props
+- No console.log spam
+- No hardcoded fake API unless clearly marked
+
+---
+
+# 🚀 EXPECTATION
+
+Every file must be production-ready.
+No placeholders.
+No empty exports.
+
+If unsure → implement a working mock version.
