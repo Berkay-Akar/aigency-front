@@ -1,11 +1,13 @@
 "use client";
 
 import { Zap, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useStudioStore } from "@/store/studio-store";
+import { useJobPolling } from "@/hooks/use-job-polling";
 
 const CREDIT_COST: Record<string, number> = {
   "product-enhance": 16,
@@ -14,7 +16,17 @@ const CREDIT_COST: Record<string, number> = {
   video: 80,
 };
 
+const JOB_STATUS_LABELS: Record<string, string> = {
+  queued: "Queued — waiting to start…",
+  processing: "AI is generating your images…",
+  completed: "Done!",
+  failed: "Generation failed",
+};
+
 export function PromptPanel() {
+  // Activate polling while a job is running
+  useJobPolling();
+
   const {
     activeTool,
     productName,
@@ -22,6 +34,7 @@ export function PromptPanel() {
     prompt,
     isGenerating,
     progress,
+    jobStatus,
     uploadedImage,
     setProductName,
     setBrandName,
@@ -31,6 +44,13 @@ export function PromptPanel() {
 
   const cost = CREDIT_COST[activeTool] ?? 16;
   const canGenerate = !!uploadedImage && !isGenerating;
+
+  const handleGenerate = async () => {
+    const jobId = await startGeneration();
+    if (!jobId) {
+      toast.error("Failed to start generation. Please try again.");
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -77,7 +97,9 @@ export function PromptPanel() {
       {isGenerating && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-white/40">Generating variations…</span>
+            <span className="text-white/40">
+              {jobStatus ? JOB_STATUS_LABELS[jobStatus] : "Preparing…"}
+            </span>
             <span className="text-indigo-400 font-medium">
               {Math.round(progress)}%
             </span>
@@ -89,10 +111,17 @@ export function PromptPanel() {
         </div>
       )}
 
+      {/* Failed state */}
+      {jobStatus === "failed" && !isGenerating && (
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+          Generation failed. Please check your settings and try again.
+        </div>
+      )}
+
       {/* Generate button */}
       <Button
         disabled={!canGenerate}
-        onClick={startGeneration}
+        onClick={handleGenerate}
         className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-semibold text-base shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all"
       >
         {isGenerating ? (

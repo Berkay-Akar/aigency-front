@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Plus, CalendarDays, List } from "lucide-react";
-import { PostCard, type Post } from "@/components/features/calendar/post-card";
+import { postsApi, type Post } from "@/lib/api";
+import { PostCard } from "@/components/features/calendar/post-card";
 import { EditModal } from "@/components/features/calendar/edit-modal";
-import { MOCK_CALENDAR_POSTS } from "@/lib/mock-data";
+import { ScheduleModal } from "@/components/features/studio/schedule-modal";
 import { cn } from "@/lib/utils";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
 ];
 
 function getDaysInMonth(year: number, month: number) {
@@ -27,51 +29,78 @@ export default function CalendarPage() {
   const [month, setMonth] = useState(today.getMonth());
   const [view, setView] = useState<"month" | "week">("month");
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+
+  // Date range for the current month view
+  const from = new Date(year, month, 1).toISOString();
+  const to = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+
+  const { data: posts, isLoading } = useQuery({
+    queryKey: ["calendar", year, month],
+    queryFn: () => postsApi.calendar(from, to).then((r) => r.data),
+  });
 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
+  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
 
   const prevMonth = () => {
-    if (month === 0) { setMonth(11); setYear(y => y - 1); }
-    else setMonth(m => m - 1);
+    if (month === 0) { setMonth(11); setYear((y) => y - 1); }
+    else setMonth((m) => m - 1);
   };
 
   const nextMonth = () => {
-    if (month === 11) { setMonth(0); setYear(y => y + 1); }
-    else setMonth(m => m + 1);
+    if (month === 11) { setMonth(0); setYear((y) => y + 1); }
+    else setMonth((m) => m + 1);
   };
 
-  const getPostsForDay = (day: number) => {
-    return MOCK_CALENDAR_POSTS.filter(
-      (p) =>
-        p.date.getFullYear() === year &&
-        p.date.getMonth() === month &&
-        p.date.getDate() === day
-    );
-  };
+  const getPostsForDay = (day: number) =>
+    (posts ?? []).filter((p) => {
+      const d = new Date(p.scheduledAt ?? p.createdAt);
+      return (
+        d.getFullYear() === year &&
+        d.getMonth() === month &&
+        d.getDate() === day
+      );
+    });
 
-  const handlePostClick = (post: Post) => {
-    setSelectedPost(post);
-    setModalOpen(true);
-  };
-
-  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+  const calendarPost = selectedPost
+    ? {
+        id: selectedPost.id,
+        date: new Date(selectedPost.scheduledAt ?? selectedPost.createdAt),
+        time: selectedPost.scheduledAt
+          ? new Date(selectedPost.scheduledAt).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            })
+          : "--:--",
+        platform: selectedPost.platform,
+        caption: selectedPost.caption,
+        imageUrl: selectedPost.imageUrl ?? "",
+        status: (selectedPost.status === "SCHEDULED"
+          ? "scheduled"
+          : selectedPost.status === "PUBLISHED"
+          ? "published"
+          : "draft") as "scheduled" | "published" | "draft",
+      }
+    : null;
 
   return (
-    <div className="flex flex-col h-full p-6">
+    <div className="flex flex-col h-full p-4 md:p-6 pb-24 md:pb-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-bold text-white mb-0.5">Content Calendar</h1>
+          <h1 className="text-xl font-bold text-white mb-0.5">Calendar</h1>
           <p className="text-sm text-white/30">
-            {MOCK_CALENDAR_POSTS.length} posts scheduled this month
+            {isLoading ? "Loading…" : `${posts?.length ?? 0} posts scheduled`}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           {/* View toggle */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/[0.08]">
+          <div className="hidden sm:flex items-center gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/[0.08]">
             <button
               onClick={() => setView("month")}
               className={cn(
@@ -94,15 +123,18 @@ export default function CalendarPage() {
             </button>
           </div>
 
-          <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20">
+          <button
+            onClick={() => setScheduleOpen(true)}
+            className="flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20"
+          >
             <Plus className="w-4 h-4" />
-            Schedule post
+            <span className="hidden sm:inline">Schedule post</span>
           </button>
         </div>
       </div>
 
-      {/* Calendar nav */}
-      <div className="flex items-center gap-4 mb-4">
+      {/* Month nav */}
+      <div className="flex items-center gap-3 mb-4">
         <button
           onClick={prevMonth}
           className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
@@ -141,13 +173,13 @@ export default function CalendarPage() {
               year === today.getFullYear() &&
               month === today.getMonth() &&
               dayNum === today.getDate();
-            const posts = isValidDay ? getPostsForDay(dayNum) : [];
+            const dayPosts = isValidDay ? getPostsForDay(dayNum) : [];
 
             return (
               <div
                 key={idx}
                 className={cn(
-                  "p-2 rounded-2xl border min-h-[90px] transition-colors",
+                  "p-1.5 md:p-2 rounded-2xl border min-h-[70px] md:min-h-[90px] transition-colors",
                   isValidDay
                     ? "border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.03]"
                     : "border-transparent",
@@ -158,25 +190,56 @@ export default function CalendarPage() {
                   <>
                     <span
                       className={cn(
-                        "text-xs font-medium block mb-1.5",
-                        isToday
-                          ? "text-indigo-400"
-                          : "text-white/30"
+                        "text-xs font-medium block mb-1",
+                        isToday ? "text-indigo-400" : "text-white/30"
                       )}
                     >
                       {dayNum}
                     </span>
+
+                    {/* Loading skeletons */}
+                    {isLoading && dayNum <= 7 && (
+                      <div className="skeleton h-6 rounded-lg" />
+                    )}
+
                     <div className="space-y-1">
-                      {posts.slice(0, 2).map((post) => (
-                        <PostCard
-                          key={post.id}
-                          post={post}
-                          onClick={handlePostClick}
-                        />
-                      ))}
-                      {posts.length > 2 && (
+                      {dayPosts.slice(0, 2).map((post) => {
+                        // Adapt API Post to PostCard format
+                        const cardStatus: "scheduled" | "published" | "draft" =
+                          post.status === "SCHEDULED"
+                            ? "scheduled"
+                            : post.status === "PUBLISHED"
+                            ? "published"
+                            : "draft";
+                        const cardPost = {
+                          id: post.id,
+                          date: new Date(post.scheduledAt ?? post.createdAt),
+                          time: post.scheduledAt
+                            ? new Date(post.scheduledAt).toLocaleTimeString("en-US", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: false,
+                              })
+                            : "--:--",
+                          platform: post.platform,
+                          caption: post.caption,
+                          imageUrl: post.imageUrl ?? "",
+                          status: cardStatus,
+                        };
+                        return (
+                          <PostCard
+                            key={post.id}
+                            post={cardPost}
+                            onClick={() => {
+                              setSelectedPost(post);
+                              setEditOpen(true);
+                            }}
+                          />
+                        );
+                      })}
+                      {dayPosts.length > 2 && (
                         <p className="text-[9px] text-white/30 pl-1">
-                          +{posts.length - 2} more
+                          +{dayPosts.length - 2} more
                         </p>
                       )}
                     </div>
@@ -189,7 +252,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-6 mt-4 pt-4 border-t border-white/[0.06]">
+      <div className="hidden md:flex items-center gap-6 mt-4 pt-4 border-t border-white/[0.06]">
         {[
           { label: "Scheduled", color: "bg-indigo-500/50" },
           { label: "Draft", color: "bg-white/20" },
@@ -202,10 +265,19 @@ export default function CalendarPage() {
         ))}
       </div>
 
-      <EditModal
-        post={selectedPost}
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+      {/* Edit modal */}
+      {calendarPost && (
+        <EditModal
+          post={calendarPost}
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+        />
+      )}
+
+      {/* Schedule modal */}
+      <ScheduleModal
+        open={scheduleOpen}
+        onClose={() => setScheduleOpen(false)}
       />
     </div>
   );

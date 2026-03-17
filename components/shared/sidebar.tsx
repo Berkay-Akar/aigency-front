@@ -10,6 +10,8 @@ import {
   Palette,
   Settings,
   HelpCircle,
+  FileText,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
@@ -17,18 +19,56 @@ import { Logo } from "./logo";
 const NAV_ITEMS = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/studio", icon: Wand2, label: "Studio" },
+  { href: "/posts", icon: FileText, label: "Posts" },
   { href: "/calendar", icon: CalendarDays, label: "Calendar" },
   { href: "/assets", icon: Images, label: "Assets" },
   { href: "/brand", icon: Palette, label: "Brand Kit" },
 ];
 
 const BOTTOM_ITEMS = [
+  { href: "/billing", icon: CreditCard, label: "Billing" },
   { href: "/settings", icon: Settings, label: "Settings" },
   { href: "/help", icon: HelpCircle, label: "Help" },
 ];
 
-export function Sidebar() {
+// Items shown in the mobile bottom nav (most important only)
+const MOBILE_NAV = [
+  { href: "/dashboard", icon: LayoutDashboard, label: "Home" },
+  { href: "/studio", icon: Wand2, label: "Studio" },
+  { href: "/posts", icon: FileText, label: "Posts" },
+  { href: "/calendar", icon: CalendarDays, label: "Calendar" },
+  { href: "/settings", icon: Settings, label: "Settings" },
+];
+
+interface SidebarProps {
+  mobile?: boolean;
+}
+
+export function Sidebar({ mobile }: SidebarProps) {
   const pathname = usePathname();
+
+  if (mobile) {
+    return (
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0c0c0c]/95 backdrop-blur-md border-t border-white/[0.06] flex items-center justify-around px-2 py-2">
+        {MOBILE_NAV.map(({ href, icon: Icon, label }) => {
+          const active = pathname === href || pathname.startsWith(href + "/");
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-colors min-w-[52px]",
+                active ? "text-indigo-400" : "text-white/30"
+              )}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[10px] font-medium">{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    );
+  }
 
   return (
     <aside className="w-[220px] flex-shrink-0 flex flex-col h-full bg-[#0c0c0c] border-r border-white/[0.06]">
@@ -69,16 +109,24 @@ export function Sidebar() {
 
       {/* Bottom items */}
       <div className="p-3 space-y-0.5 border-t border-white/[0.06]">
-        {BOTTOM_ITEMS.map(({ href, icon: Icon, label }) => (
-          <Link
-            key={href}
-            href={href}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/30 hover:text-white/60 hover:bg-white/[0.04] transition-all duration-150"
-          >
-            <Icon className="w-4 h-4 flex-shrink-0" />
-            {label}
-          </Link>
-        ))}
+        {BOTTOM_ITEMS.map(({ href, icon: Icon, label }) => {
+          const active = pathname === href;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
+                active
+                  ? "bg-indigo-500/15 text-white"
+                  : "text-white/30 hover:text-white/60 hover:bg-white/[0.04]"
+              )}
+            >
+              <Icon className="w-4 h-4 flex-shrink-0" />
+              {label}
+            </Link>
+          );
+        })}
       </div>
     </aside>
   );

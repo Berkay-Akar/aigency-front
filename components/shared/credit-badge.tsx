@@ -22,7 +22,7 @@ export function CreditBadge({ className }: CreditBadgeProps) {
     >
       <Zap className="w-3.5 h-3.5 text-indigo-400" />
       <span>{credits.toLocaleString()}</span>
-      <span className="text-indigo-400/60 text-xs">credits</span>
+      <span className="hidden sm:inline text-indigo-400/60 text-xs">credits</span>
     </div>
   );
 }
