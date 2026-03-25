@@ -81,7 +81,9 @@ export default function RegisterPage() {
               className="bg-white/[0.05] border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500/40 h-11"
             />
             {errors.name && (
-              <p className="text-xs text-red-400 mt-1.5">{errors.name.message}</p>
+              <p className="text-xs text-red-400 mt-1.5">
+                {errors.name.message}
+              </p>
             )}
           </div>
 
@@ -125,7 +127,9 @@ export default function RegisterPage() {
               className="bg-white/[0.05] border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500/40 h-11"
             />
             {errors.email && (
-              <p className="text-xs text-red-400 mt-1.5">{errors.email.message}</p>
+              <p className="text-xs text-red-400 mt-1.5">
+                {errors.email.message}
+              </p>
             )}
           </div>
 
