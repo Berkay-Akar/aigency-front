@@ -30,7 +30,7 @@ export default function DashboardPage() {
 
   const { data: posts } = useQuery({
     queryKey: ["posts"],
-    queryFn: () => postsApi.list().then((r) => r.data),
+    queryFn: () => postsApi.list(),
   });
 
   const firstName = user?.name?.split(" ")[0] ?? "there";
@@ -46,7 +46,10 @@ export default function DashboardPage() {
   const CARDS = [
     {
       label: "Credits Remaining",
-      value: balance ? balance.credits.toLocaleString() : "—",
+      value:
+        balance != null && typeof balance.credits === "number"
+          ? balance.credits.toLocaleString()
+          : "—",
       change: balance?.plan ?? "Growth",
       trend: "up" as const,
       icon: Zap,

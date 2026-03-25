@@ -41,8 +41,8 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const res = await authApi.register(data);
-      login(res.data.token, res.data.user);
+      const auth = await authApi.register(data);
+      login(auth.token, auth.user, auth.refreshToken);
       toast.success("Account created! Welcome to Aigencys.");
       router.push("/dashboard");
     } catch (err: unknown) {

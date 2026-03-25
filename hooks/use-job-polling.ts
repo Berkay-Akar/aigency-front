@@ -19,7 +19,7 @@ export function useJobPolling() {
 
   const { data: job } = useQuery({
     queryKey: ["job", jobId],
-    queryFn: () => aiApi.getJob(jobId!).then((r) => r.data),
+    queryFn: () => aiApi.getJob(jobId!),
     enabled: isActive,
     refetchInterval: isActive ? 2500 : false,
   });
@@ -38,13 +38,13 @@ export function useJobPolling() {
         job.result?.caption,
         job.result?.hashtags
       );
-      toast.success("Generation complete! Your images are ready.");
+      toast.success("Üretim tamamlandı. Çıktılar hazır.");
     }
 
     if (job.status === "failed" && toastedRef.current !== job.id) {
       toastedRef.current = job.id;
       setJobStatus("failed", 0);
-      toast.error(job.error ?? "Generation failed. Please try again.");
+      toast.error(job.error ?? "Üretim başarısız. Tekrar deneyin.");
     }
   }, [job, setJobStatus, setResults]);
 }

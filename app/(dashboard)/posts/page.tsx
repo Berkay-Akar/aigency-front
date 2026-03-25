@@ -158,7 +158,7 @@ export default function PostsPage() {
 
   const { data: posts, isLoading } = useQuery({
     queryKey: ["posts"],
-    queryFn: () => postsApi.list().then((r) => r.data),
+    queryFn: () => postsApi.list(),
   });
 
   const deleteMutation = useMutation({

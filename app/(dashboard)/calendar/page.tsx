@@ -38,7 +38,7 @@ export default function CalendarPage() {
 
   const { data: posts, isLoading } = useQuery({
     queryKey: ["calendar", year, month],
-    queryFn: () => postsApi.calendar(from, to).then((r) => r.data),
+    queryFn: () => postsApi.calendar(from, to),
   });
 
   const daysInMonth = getDaysInMonth(year, month);

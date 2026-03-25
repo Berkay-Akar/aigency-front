@@ -8,27 +8,35 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useStudioStore } from "@/store/studio-store";
 import { useJobPolling } from "@/hooks/use-job-polling";
-
-const CREDIT_COST: Record<string, number> = {
-  "product-enhance": 16,
-  "fashion-model": 32,
-  "background-replace": 12,
-  video: 80,
-};
+import { Step1Config } from "./step1-config";
+import { Step2Config } from "./step2-config";
+import { Step3Config } from "./step3-config";
 
 const JOB_STATUS_LABELS: Record<string, string> = {
   queued: "Queued — waiting to start…",
-  processing: "AI is generating your images…",
+  processing: "AI is generating…",
   completed: "Done!",
   failed: "Generation failed",
 };
 
+const STEP_COLORS = {
+  professionalize: "bg-violet-600 hover:bg-violet-500 shadow-violet-500/20 hover:shadow-violet-500/30",
+  campaign: "bg-sky-600 hover:bg-sky-500 shadow-sky-500/20 hover:shadow-sky-500/30",
+  video: "bg-rose-600 hover:bg-rose-500 shadow-rose-500/20 hover:shadow-rose-500/30",
+};
+
+function useCreditCost() {
+  const { activeStep, outputTypes, variantCount } = useStudioStore();
+  if (activeStep === "professionalize") return outputTypes.length * 8;
+  if (activeStep === "campaign") return variantCount * 6;
+  return 20;
+}
+
 export function PromptPanel() {
-  // Activate polling while a job is running
   useJobPolling();
 
   const {
-    activeTool,
+    activeStep,
     productName,
     brandName,
     prompt,
@@ -42,8 +50,9 @@ export function PromptPanel() {
     startGeneration,
   } = useStudioStore();
 
-  const cost = CREDIT_COST[activeTool] ?? 16;
+  const cost = useCreditCost();
   const canGenerate = !!uploadedImage && !isGenerating;
+  const buttonColor = STEP_COLORS[activeStep];
 
   const handleGenerate = async () => {
     const jobId = await startGeneration();
@@ -53,8 +62,8 @@ export function PromptPanel() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Fields */}
+    <div className="flex flex-col gap-5">
+      {/* Common fields */}
       <div className="space-y-3">
         <div>
           <label className="text-xs text-white/40 font-medium uppercase tracking-wider mb-1.5 block">
@@ -64,7 +73,7 @@ export function PromptPanel() {
             placeholder="e.g. Luxe Serum"
             value={productName}
             onChange={(e) => setProductName(e.target.value)}
-            className="bg-white/[0.04] border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500/40"
+            className="bg-white/4 border-white/8 rounded-xl text-white placeholder:text-white/20 focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500/40"
           />
         </div>
         <div>
@@ -75,46 +84,51 @@ export function PromptPanel() {
             placeholder="e.g. Bloom Beauty"
             value={brandName}
             onChange={(e) => setBrandName(e.target.value)}
-            className="bg-white/[0.04] border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500/40"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-white/40 font-medium uppercase tracking-wider mb-1.5 block">
-            Style prompt{" "}
-            <span className="text-white/20 normal-case">(optional)</span>
-          </label>
-          <Textarea
-            placeholder="e.g. Minimal studio, marble surface, warm morning light…"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            rows={3}
-            className="bg-white/[0.04] border-white/[0.08] rounded-xl text-white placeholder:text-white/20 resize-none focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500/40"
+            className="bg-white/4 border-white/8 rounded-xl text-white placeholder:text-white/20 focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500/40"
           />
         </div>
       </div>
 
-      {/* Progress bar when generating */}
+      {/* Divider */}
+      <div className="h-px bg-white/6" />
+
+      {/* Step-specific config */}
+      {activeStep === "professionalize" && <Step1Config />}
+      {activeStep === "campaign" && <Step2Config />}
+      {activeStep === "video" && <Step3Config />}
+
+      {/* Optional prompt */}
+      <div>
+        <label className="text-xs text-white/40 font-medium uppercase tracking-wider mb-1.5 block">
+          Additional prompt{" "}
+          <span className="text-white/20 normal-case">(optional)</span>
+        </label>
+        <Textarea
+          placeholder="e.g. Marble surface, warm morning light, luxury feel…"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          rows={2}
+          className="bg-white/4 border-white/8 rounded-xl text-white placeholder:text-white/20 resize-none focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500/40 text-sm"
+        />
+      </div>
+
+      {/* Progress */}
       {isGenerating && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="text-white/40">
               {jobStatus ? JOB_STATUS_LABELS[jobStatus] : "Preparing…"}
             </span>
-            <span className="text-indigo-400 font-medium">
-              {Math.round(progress)}%
-            </span>
+            <span className="text-indigo-400 font-medium">{Math.round(progress)}%</span>
           </div>
-          <Progress
-            value={progress}
-            className="h-1.5 bg-white/[0.06] [&>div]:bg-indigo-500"
-          />
+          <Progress value={progress} className="h-1.5 bg-white/6 [&>div]:bg-indigo-500" />
         </div>
       )}
 
-      {/* Failed state */}
+      {/* Error */}
       {jobStatus === "failed" && !isGenerating && (
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
-          Generation failed. Please check your settings and try again.
+          Generation failed. Check your settings and try again.
         </div>
       )}
 
@@ -122,7 +136,7 @@ export function PromptPanel() {
       <Button
         disabled={!canGenerate}
         onClick={handleGenerate}
-        className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-semibold text-base shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all"
+        className={`w-full h-12 rounded-2xl disabled:opacity-40 text-white font-semibold text-base shadow-lg transition-all ${buttonColor}`}
       >
         {isGenerating ? (
           <>

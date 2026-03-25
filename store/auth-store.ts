@@ -1,5 +1,13 @@
 import { create } from "zustand";
-import { setToken, removeToken, getToken, setStoredUser, getStoredUser } from "@/lib/auth";
+import {
+  setToken,
+  removeToken,
+  getToken,
+  setStoredUser,
+  getStoredUser,
+  setRefreshToken,
+  removeRefreshToken,
+} from "@/lib/auth";
 
 export interface AuthUser {
   id: string;
@@ -11,7 +19,7 @@ interface AuthState {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
-  login: (token: string, user: AuthUser) => void;
+  login: (token: string, user: AuthUser, refreshToken?: string) => void;
   logout: () => void;
   hydrate: () => void;
 }
@@ -21,8 +29,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: null,
   isAuthenticated: false,
 
-  login: (token, user) => {
+  login: (token, user, refreshToken) => {
     setToken(token);
+    if (refreshToken) {
+      setRefreshToken(refreshToken);
+    } else {
+      removeRefreshToken();
+    }
     setStoredUser(user as unknown as Record<string, unknown>);
     set({ token, user, isAuthenticated: true });
   },

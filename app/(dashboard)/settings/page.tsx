@@ -52,7 +52,7 @@ function WorkspaceTab() {
   const queryClient = useQueryClient();
   const { data: workspace, isLoading } = useQuery({
     queryKey: ["workspace"],
-    queryFn: () => workspaceApi.get().then((r) => r.data),
+    queryFn: () => workspaceApi.get(),
   });
 
   const {
@@ -176,7 +176,7 @@ function TeamTab() {
 
   const { data: members, isLoading } = useQuery({
     queryKey: ["workspace", "members"],
-    queryFn: () => workspaceApi.getMembers().then((r) => r.data),
+    queryFn: () => workspaceApi.getMembers(),
   });
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -282,15 +282,14 @@ function IntegrationsTab() {
 
   const { data: connections, isLoading } = useQuery({
     queryKey: ["social", "connections"],
-    queryFn: () => socialApi.getConnections().then((r) => r.data),
+    queryFn: () => socialApi.getConnections(),
   });
 
   const handleConnect = async (platform: string) => {
     setConnecting(platform);
     try {
       const res = await socialApi.getConnectUrl(platform);
-      // Redirect to OAuth URL
-      window.location.href = res.data.url;
+      window.location.href = res.url;
     } catch {
       toast.error("Failed to get connection URL. Please try again.");
       setConnecting(null);

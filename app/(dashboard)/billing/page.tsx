@@ -94,12 +94,11 @@ export default function BillingPage() {
 
   const { data: balance, isLoading } = useQuery({
     queryKey: ["billing", "balance"],
-    queryFn: () => billingApi.getBalance().then((r) => r.data),
+    queryFn: () => billingApi.getBalance(),
   });
 
   const paymentMutation = useMutation({
-    mutationFn: (packageId: string) =>
-      billingApi.createPayment(packageId).then((r) => r.data),
+    mutationFn: (packageId: string) => billingApi.createPayment(packageId),
     onSuccess: (data) => {
       setCheckoutHtml(data.checkoutFormContent);
       setCheckoutOpen(true);

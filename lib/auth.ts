@@ -1,4 +1,5 @@
 const TOKEN_KEY = "aigencys_token";
+const REFRESH_KEY = "aigencys_refresh_token";
 const USER_KEY = "aigencys_user";
 
 export function getToken(): string | null {
@@ -10,8 +11,22 @@ export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
 }
 
+export function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(REFRESH_KEY);
+}
+
+export function setRefreshToken(token: string): void {
+  localStorage.setItem(REFRESH_KEY, token);
+}
+
+export function removeRefreshToken(): void {
+  localStorage.removeItem(REFRESH_KEY);
+}
+
 export function removeToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(USER_KEY);
 }
 

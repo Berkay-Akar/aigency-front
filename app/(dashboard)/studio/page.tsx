@@ -1,85 +1,73 @@
 "use client";
 
-import { useState } from "react";
-import { ToolSelector } from "@/components/features/studio/tool-selector";
-import { UploadZone } from "@/components/features/studio/upload-zone";
-import { PromptPanel } from "@/components/features/studio/prompt-panel";
-import { ResultGrid } from "@/components/features/studio/result-grid";
+import { motion } from "framer-motion";
+import { useWorkspaceData } from "@/hooks/use-workspace-data";
+import { useStudioStore } from "@/store/studio-store";
+import { StudioHeader } from "@/components/features/studio/studio-header";
+import { UploadStage } from "@/components/features/studio/upload-stage";
+import { ModeSelector } from "@/components/features/studio/mode-selector";
+import { ConfigPanel } from "@/components/features/studio/config-panel";
+import { GenerateBar } from "@/components/features/studio/generate-bar";
+import { BeforeAfterBlock } from "@/components/features/studio/before-after-block";
+import { ResultsGallery } from "@/components/features/studio/results-gallery";
+import { StudioSidePanel } from "@/components/features/studio/studio-side-panel";
+import { ExportStrip } from "@/components/features/studio/export-strip";
+import { VideoFlowSection } from "@/components/features/studio/video-flow-section";
+import { TemplateGrid } from "@/components/features/studio/template-grid";
 import { CaptionBar } from "@/components/features/studio/caption-bar";
-import { MobileToolSelector } from "@/components/features/studio/mobile-tool-selector";
-import { cn } from "@/lib/utils";
-
-type MobileTab = "create" | "results";
 
 export default function StudioPage() {
-  const [mobileTab, setMobileTab] = useState<MobileTab>("create");
+  useWorkspaceData();
+
+  const uploadedImage = useStudioStore((s) => s.uploadedImage);
+  const firstResult = useStudioStore((s) => s.results[0] ?? null);
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Mobile tab switcher */}
-      <div className="md:hidden flex items-center gap-1 px-4 pt-4 pb-2">
-        {(["create", "results"] as MobileTab[]).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setMobileTab(tab)}
-            className={cn(
-              "flex-1 py-2 rounded-xl text-sm font-medium transition-colors capitalize",
-              mobileTab === tab
-                ? "bg-indigo-600 text-white"
-                : "bg-white/[0.05] text-white/40 hover:text-white/70"
-            )}
-          >
-            {tab === "create" ? "Create" : "Results"}
-          </button>
-        ))}
-      </div>
+    <div className="min-h-full bg-[#050505]">
+      <StudioHeader />
 
-      {/* 3-panel layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left: Tool Selector — desktop only */}
-        <div className="hidden md:flex">
-          <ToolSelector />
-        </div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+        className="mx-auto max-w-[1400px] space-y-16 px-4 py-10 md:px-8 md:py-14"
+      >
+        <UploadStage />
 
-        {/* Center: Upload + Prompt */}
-        <div
-          className={cn(
-            "flex-1 flex flex-col overflow-y-auto p-4 md:p-6 gap-5 md:border-r md:border-white/[0.06]",
-            mobileTab === "results" ? "hidden md:flex" : "flex"
-          )}
-        >
-          {/* Mobile: horizontal tool selector */}
-          <div className="md:hidden">
-            <MobileToolSelector />
+        <ModeSelector />
+
+        <ConfigPanel />
+
+        <GenerateBar />
+
+        <BeforeAfterBlock beforeSrc={uploadedImage} afterSrc={firstResult} />
+
+        <section className="space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-medium text-white">Çıktı galerisi</h2>
+              <p className="mt-1 text-sm text-white/35">
+                Masonry düzen · hero + varyasyonlar · dışa aktarma.
+              </p>
+            </div>
           </div>
 
-          <div className="hidden md:block">
-            <h1 className="text-xl font-bold text-white mb-1">Studio</h1>
-            <p className="text-sm text-white/30">
-              Upload your product and let AI do the rest
-            </p>
+          <div className="grid items-start gap-8 lg:grid-cols-12">
+            <div className="space-y-6 lg:col-span-8">
+              <ResultsGallery />
+              <ExportStrip />
+            </div>
+            <div className="lg:col-span-4 lg:sticky lg:top-28">
+              <StudioSidePanel />
+            </div>
           </div>
+        </section>
 
-          <UploadZone />
-          <PromptPanel />
-        </div>
+        <VideoFlowSection />
 
-        {/* Right: Results */}
-        <div
-          className={cn(
-            "w-full md:w-[340px] flex-shrink-0 p-4 md:p-5 overflow-y-auto",
-            mobileTab === "create" ? "hidden md:block" : "block"
-          )}
-        >
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-sm font-semibold text-white/60">Results</h2>
-            <span className="text-xs text-white/20">4 variations</span>
-          </div>
-          <ResultGrid />
-        </div>
-      </div>
+        <TemplateGrid />
+      </motion.div>
 
-      {/* Bottom: Caption Bar */}
       <CaptionBar />
     </div>
   );

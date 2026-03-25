@@ -14,17 +14,17 @@ export function useWorkspaceData() {
 
   const workspaceQ = useQuery({
     queryKey: ["workspace"],
-    queryFn: () => workspaceApi.get().then((r) => r.data),
+    queryFn: () => workspaceApi.get(),
   });
 
   const balanceQ = useQuery({
     queryKey: ["billing", "balance"],
-    queryFn: () => billingApi.getBalance().then((r) => r.data),
+    queryFn: () => billingApi.getBalance(),
   });
 
   const healthQ = useQuery({
     queryKey: ["health"],
-    queryFn: () => healthApi.check().then((r) => r.data),
+    queryFn: () => healthApi.check(),
     refetchInterval: 60_000,
   });
 

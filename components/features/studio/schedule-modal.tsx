@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,10 +19,10 @@ import { postsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const schema = z.object({
-  caption: z.string().min(1, "Caption is required"),
+  caption: z.string().min(1, "Açıklama gerekli"),
   hashtags: z.string(),
   platform: z.enum(["instagram", "tiktok", "facebook", "twitter"]),
-  scheduledAt: z.string().min(1, "Schedule date/time is required"),
+  scheduledAt: z.string().min(1, "Tarih ve saat gerekli"),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -40,6 +40,7 @@ interface ScheduleModalProps {
   imageUrl?: string;
   defaultCaption?: string;
   defaultHashtags?: string[];
+  defaultPlatform?: "instagram" | "tiktok" | "facebook" | "twitter";
 }
 
 export function ScheduleModal({
@@ -48,6 +49,7 @@ export function ScheduleModal({
   imageUrl,
   defaultCaption = "",
   defaultHashtags = [],
+  defaultPlatform = "instagram",
 }: ScheduleModalProps) {
   const queryClient = useQueryClient();
   const [selectedPlatform, setSelectedPlatform] = useState<
@@ -91,12 +93,12 @@ export function ScheduleModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["calendar"] });
-      toast.success("Post scheduled successfully!");
+      toast.success("Gönderi planlandı.");
       reset();
       onClose();
     },
     onError: () => {
-      toast.error("Failed to schedule post. Please try again.");
+      toast.error("Planlama başarısız. Tekrar deneyin.");
     },
   });
 
@@ -114,7 +116,7 @@ export function ScheduleModal({
           <div className="flex items-center justify-between">
             <DialogTitle className="text-base font-semibold text-white flex items-center gap-2">
               <CalendarPlus className="w-4 h-4 text-indigo-400" />
-              Schedule Post
+              Gönderi planla
             </DialogTitle>
             <button
               onClick={onClose}
@@ -136,7 +138,7 @@ export function ScheduleModal({
                   className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
                 />
                 <p className="text-xs text-white/40">
-                  Image will be attached to this post
+                  Görsel bu gönderiye eklenecek
                 </p>
               </div>
             )}
@@ -144,12 +146,12 @@ export function ScheduleModal({
             {/* Caption */}
             <div>
               <label className="text-xs text-white/40 font-medium uppercase tracking-wider mb-1.5 block">
-                Caption
+                Açıklama
               </label>
               <Textarea
                 {...register("caption")}
                 rows={3}
-                placeholder="Write your caption…"
+                placeholder="Gönderi metninizi yazın…"
                 className="bg-white/[0.04] border-white/[0.08] rounded-xl text-white text-sm resize-none placeholder:text-white/20 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/30"
               />
               {errors.caption && (
@@ -163,7 +165,7 @@ export function ScheduleModal({
             <div>
               <label className="text-xs text-white/40 font-medium uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                 <Hash className="w-3 h-3" />
-                Hashtags
+                Etiketler
               </label>
               <Input
                 {...register("hashtags")}
@@ -200,7 +202,7 @@ export function ScheduleModal({
             {/* Schedule time */}
             <div>
               <label className="text-xs text-white/40 font-medium uppercase tracking-wider mb-1.5 block">
-                Schedule date & time
+                Tarih ve saat
               </label>
               <Input
                 type="datetime-local"
@@ -221,7 +223,7 @@ export function ScheduleModal({
                 onClick={onClose}
                 className="flex-1 py-2.5 rounded-2xl border border-white/[0.08] text-white/50 hover:text-white text-sm font-medium transition-colors"
               >
-                Cancel
+                Vazgeç
               </button>
               <button
                 type="submit"
@@ -231,7 +233,7 @@ export function ScheduleModal({
                 {mutation.isPending && (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 )}
-                {mutation.isPending ? "Scheduling…" : "Schedule post"}
+                {mutation.isPending ? "Planlanıyor…" : "Planla"}
               </button>
             </div>
           </div>
