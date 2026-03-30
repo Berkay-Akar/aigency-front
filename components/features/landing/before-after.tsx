@@ -1,11 +1,22 @@
 "use client";
 
 import { useRef, useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 28 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] } },
+};
+
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } },
+};
 
 export function BeforeAfter() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState(45);
+  const [position, setPosition] = useState(50);
   const [dragging, setDragging] = useState(false);
 
   const updatePosition = useCallback((clientX: number) => {
@@ -38,27 +49,46 @@ export function BeforeAfter() {
   );
 
   return (
-    <section className="py-32 px-6">
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-16">
-          <p className="text-indigo-400 text-sm font-medium uppercase tracking-widest mb-4">
+    <section className="py-32 px-6 border-t border-white/[0.04]">
+      <div className="max-w-6xl mx-auto">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+          variants={stagger}
+          className="text-center mb-20"
+        >
+          <motion.span
+            variants={fadeUp}
+            className="block text-[10.5px] font-[500] tracking-[0.2em] uppercase text-white/[0.22] mb-6"
+          >
             Before / After
-          </p>
-          <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
-            From ordinary to
-            <span className="gradient-text"> extraordinary</span>
-          </h2>
-          <p className="text-white/40 text-lg max-w-xl mx-auto">
-            Upload your product photo. Our AI transforms it into studio-quality
-            content in seconds.
-          </p>
-        </div>
+          </motion.span>
+          <motion.h2
+            variants={fadeUp}
+            className="text-[clamp(2.4rem,4.5vw,3.6rem)] font-[350] tracking-[-0.03em] text-white leading-[1.08] mb-7"
+          >
+            <span className="font-[550]">Product image</span> to campaign asset.
+          </motion.h2>
+          <motion.p
+            variants={fadeUp}
+            className="text-[16px] text-white/[0.32] max-w-xl mx-auto leading-[1.65] font-[400]"
+          >
+            Upload a product photo. Receive editorial-quality creative in under a minute. Drag to compare transformation.
+          </motion.p>
+        </motion.div>
 
-        {/* Slider */}
-        <div className="relative max-w-3xl mx-auto">
+        {/* Slider — refined */}
+        <motion.div
+          initial={{ opacity: 0, y: 32 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="relative max-w-4xl mx-auto"
+        >
           <div
             ref={containerRef}
-            className="relative aspect-[4/3] rounded-3xl overflow-hidden cursor-col-resize select-none"
+            className="relative aspect-[16/10] rounded-[24px] overflow-hidden cursor-col-resize select-none border border-white/[0.06] shadow-2xl"
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
@@ -68,13 +98,13 @@ export function BeforeAfter() {
             {/* After (right, full) */}
             <div className="absolute inset-0">
               <img
-                src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&h=600&fit=crop"
+                src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1000&h=700&fit=crop&q=90"
                 alt="After AI enhancement"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-              <div className="absolute bottom-4 right-4 px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-medium backdrop-blur-sm">
-                After — AI Enhanced ✨
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+              <div className="absolute bottom-6 right-6 px-4 py-2.5 rounded-[14px] bg-black/50 backdrop-blur-xl border border-white/[0.08] text-white text-[13px] font-[500] tracking-[-0.01em]">
+                Campaign Ready
               </div>
             </div>
 
@@ -88,27 +118,27 @@ export function BeforeAfter() {
                 style={{ width: `${(100 / position) * 100}%` }}
               >
                 <img
-                  src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&h=600&fit=crop&sat=-100&con=-10"
+                  src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1000&h=700&fit=crop&sat=-100&q=90"
                   alt="Before raw product"
-                  className="w-full h-full object-cover grayscale brightness-75"
+                  className="w-full h-full object-cover grayscale brightness-[0.7] contrast-[0.9]"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
               </div>
-              <div className="absolute bottom-4 left-4 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-xs font-medium backdrop-blur-sm">
-                Before — Raw photo
+              <div className="absolute bottom-6 left-6 px-4 py-2.5 rounded-[14px] bg-white/[0.06] backdrop-blur-xl border border-white/[0.08] text-white/[0.65] text-[13px] font-[500] tracking-[-0.01em]">
+                Original Product
               </div>
             </div>
 
             {/* Divider */}
             <div
-              className="absolute top-0 bottom-0 w-[2px] bg-white/80 shadow-lg"
+              className="absolute top-0 bottom-0 w-[1.5px] bg-white/70 shadow-2xl"
               style={{ left: `${position}%`, transform: "translateX(-50%)" }}
             />
 
             {/* Handle */}
             <div
               className={cn(
-                "absolute top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-2xl flex items-center justify-center cursor-col-resize z-10 transition-transform",
+                "absolute top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-2xl flex items-center justify-center cursor-col-resize z-10 transition-transform duration-200",
                 dragging ? "scale-110" : "hover:scale-105"
               )}
               style={{ left: `${position}%`, transform: `translateX(-50%) translateY(-50%)` }}
@@ -118,11 +148,11 @@ export function BeforeAfter() {
                 setDragging(true);
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
                 <path
                   d="M5 4L2 8L5 12M11 4L14 8L11 12"
-                  stroke="#1a1a2e"
-                  strokeWidth="2"
+                  stroke="#080808"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -131,10 +161,10 @@ export function BeforeAfter() {
           </div>
 
           {/* Hint */}
-          <p className="text-center text-white/30 text-sm mt-4">
-            Drag the slider to compare
+          <p className="text-center text-white/[0.24] text-[13px] mt-6 font-[450]">
+            Drag to compare transformation
           </p>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

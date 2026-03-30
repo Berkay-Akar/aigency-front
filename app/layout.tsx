@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Aigencys — Replace your social media agency with AI",
+  title: "Aigencys — Product Images to Campaign Creative",
   description:
-    "Generate, schedule, and publish premium social media content with AI. The complete replacement for your social media agency.",
+    "AI-powered creative production platform for brands. Transform product photos into editorial-quality campaign assets in seconds. No studio required.",
 };
 
 export default function RootLayout({
