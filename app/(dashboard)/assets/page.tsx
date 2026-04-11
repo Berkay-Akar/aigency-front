@@ -1,28 +1,53 @@
 "use client";
 
 import { useState } from "react";
-import { Download, ExternalLink, CalendarPlus, Plus, Search } from "lucide-react";
+import {
+  Download,
+  ExternalLink,
+  CalendarPlus,
+  Plus,
+  Search,
+} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { FilterBar } from "@/components/features/assets/filter-bar";
-import { MOCK_ASSETS } from "@/lib/mock-data";
+import { assetsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+
+const PAGE_LIMIT = 20;
+
+function AssetSkeleton() {
+  return (
+    <div className="skeleton rounded-2xl break-inside-avoid aspect-square" />
+  );
+}
 
 export default function AssetsPage() {
   const [activeType, setActiveType] = useState("All");
   const [activePlatform, setActivePlatform] = useState("All");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
-  const filtered = MOCK_ASSETS.filter((asset) => {
+  const { data, isLoading } = useQuery({
+    queryKey: ["assets", page, PAGE_LIMIT],
+    queryFn: () => assetsApi.list(page, PAGE_LIMIT),
+    placeholderData: (prev) => prev,
+  });
+
+  const assets = data?.assets ?? [];
+  const totalPages = data?.pagination.totalPages ?? 1;
+
+  const filtered = assets.filter((asset) => {
     const typeMatch =
       activeType === "All" ||
       (activeType === "Images" && asset.type === "image") ||
       (activeType === "Videos" && asset.type === "video");
     const platformMatch =
       activePlatform === "All" ||
-      asset.platform.toLowerCase() === activePlatform.toLowerCase();
+      (asset.platform ?? "").toLowerCase() === activePlatform.toLowerCase();
     const searchMatch =
       search === "" ||
-      asset.caption.toLowerCase().includes(search.toLowerCase());
+      (asset.caption ?? "").toLowerCase().includes(search.toLowerCase());
     return typeMatch && platformMatch && searchMatch;
   });
 
@@ -33,7 +58,7 @@ export default function AssetsPage() {
         <div>
           <h1 className="text-xl font-bold text-white mb-1">Assets</h1>
           <p className="text-sm text-white/30">
-            {MOCK_ASSETS.length} assets in your library
+            {data ? `${data.pagination.total} assets in your library` : "Loading…"}
           </p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20">
@@ -62,54 +87,60 @@ export default function AssetsPage() {
       </div>
 
       {/* Grid */}
-      <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
-        {filtered.map((asset) => (
-          <div
-            key={asset.id}
-            className="group relative rounded-2xl overflow-hidden break-inside-avoid"
-          >
-            <img
-              src={asset.url}
-              alt={asset.caption}
-              className="w-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
+      {isLoading ? (
+        <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <AssetSkeleton key={i} />
+          ))}
+        </div>
+      ) : filtered.length > 0 ? (
+        <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+          {filtered.map((asset) => (
+            <div
+              key={asset.id}
+              className="group relative rounded-2xl overflow-hidden break-inside-avoid"
+            >
+              <img
+                src={asset.url}
+                alt={asset.caption ?? ""}
+                className="w-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
 
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-              {/* Bottom actions */}
-              <div className="absolute bottom-0 left-0 right-0 p-3">
-                <p className="text-xs text-white/80 mb-2 line-clamp-2 leading-relaxed">
-                  {asset.caption}
-                </p>
-                <div className="flex gap-2">
-                  <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 text-white text-xs font-medium hover:bg-white/20 transition-colors">
-                    <Download className="w-3 h-3" />
-                    Download
-                  </button>
-                  <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-indigo-500/20 backdrop-blur-sm border border-indigo-500/30 text-indigo-300 text-xs font-medium hover:bg-indigo-500/30 transition-colors">
-                    <CalendarPlus className="w-3 h-3" />
-                    Schedule
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                  {asset.caption ? (
+                    <p className="text-xs text-white/80 mb-2 line-clamp-2 leading-relaxed">
+                      {asset.caption}
+                    </p>
+                  ) : null}
+                  <div className="flex gap-2">
+                    <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 text-white text-xs font-medium hover:bg-white/20 transition-colors">
+                      <Download className="w-3 h-3" />
+                      Download
+                    </button>
+                    <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-indigo-500/20 backdrop-blur-sm border border-indigo-500/30 text-indigo-300 text-xs font-medium hover:bg-indigo-500/30 transition-colors">
+                      <CalendarPlus className="w-3 h-3" />
+                      Schedule
+                    </button>
+                  </div>
+                </div>
+
+                <div className="absolute top-3 right-3">
+                  <button className="w-7 h-7 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
+                    <ExternalLink className="w-3 h-3" />
                   </button>
                 </div>
               </div>
 
-              {/* Top: Use in studio */}
-              <div className="absolute top-3 right-3">
-                <button className="w-7 h-7 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
-                  <ExternalLink className="w-3 h-3" />
-                </button>
-              </div>
+              {asset.platform ? (
+                <div className="absolute top-3 left-3 px-2 py-1 rounded-lg bg-black/50 backdrop-blur-sm text-white/60 text-[10px] font-medium capitalize">
+                  {asset.platform}
+                </div>
+              ) : null}
             </div>
-
-            {/* Platform badge */}
-            <div className="absolute top-3 left-3 px-2 py-1 rounded-lg bg-black/50 backdrop-blur-sm text-white/60 text-[10px] font-medium capitalize">
-              {asset.platform}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {filtered.length === 0 && (
+          ))}
+        </div>
+      ) : (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="w-14 h-14 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
             <Search className="w-6 h-6 text-white/20" />
@@ -118,6 +149,39 @@ export default function AssetsPage() {
           <p className="text-white/20 text-xs">Try adjusting your filters</p>
         </div>
       )}
+
+      {/* Pagination */}
+      {totalPages > 1 ? (
+        <div className="flex items-center justify-center gap-2 mt-10">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            className={cn(
+              "px-4 py-2 rounded-xl border text-sm font-medium transition-colors",
+              page <= 1
+                ? "border-white/[0.06] text-white/20 cursor-not-allowed"
+                : "border-white/[0.08] text-white/50 hover:text-white hover:border-white/20"
+            )}
+          >
+            Previous
+          </button>
+          <span className="text-xs text-white/30 tabular-nums px-2">
+            {page} / {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            className={cn(
+              "px-4 py-2 rounded-xl border text-sm font-medium transition-colors",
+              page >= totalPages
+                ? "border-white/[0.06] text-white/20 cursor-not-allowed"
+                : "border-white/[0.08] text-white/50 hover:text-white hover:border-white/20"
+            )}
+          >
+            Next
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

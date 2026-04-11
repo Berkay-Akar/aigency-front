@@ -86,7 +86,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="p-5 md:p-8 space-y-8 max-w-7xl pb-24 md:pb-8">
+    <div className="p-5 md:p-8 space-y-8 pb-24 md:pb-8">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

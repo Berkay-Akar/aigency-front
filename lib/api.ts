@@ -192,7 +192,7 @@ function normalizeBillingBalancePayload(b: unknown): BillingBalance {
         : 0;
   return {
     credits,
-    plan: typeof x.plan === "string" ? x.plan : "—",
+    plan: typeof x.plan === "string" ? x.plan : "Free",
     renewsAt: typeof x.renewsAt === "string" ? x.renewsAt : undefined,
     totalUsed:
       typeof x.totalUsed === "number"
@@ -265,7 +265,27 @@ export const workspaceApi = {
 // ─── Billing ─────────────────────────────────────────────────────────────────
 
 export interface PaymentResponse {
+  conversationId: string;
   checkoutFormContent: string;
+  creditAmount: number;
+}
+
+/** Body for POST /billing/payment (iyzico checkout). */
+export interface CreatePaymentPayload {
+  creditAmount: number;
+  price: number;
+  currency?: string;
+  callbackUrl: string;
+  buyerName: string;
+  buyerSurname: string;
+  buyerEmail: string;
+  buyerIp: string;
+  buyerCity: string;
+  buyerCountry: string;
+  buyerAddress: string;
+  buyerZip: string;
+  buyerPhone: string;
+  buyerIdentityNumber: string;
 }
 
 export const billingApi = {
@@ -274,8 +294,8 @@ export const billingApi = {
     const inner = unwrapApiData<unknown>(res.data);
     return normalizeBillingBalancePayload(inner);
   },
-  createPayment: async (packageId: string) => {
-    const res = await api.post<unknown>("/billing/payment", { packageId });
+  createPayment: async (payload: CreatePaymentPayload) => {
+    const res = await api.post<unknown>("/billing/payment", payload);
     const inner = unwrapApiData<unknown>(res.data);
     return inner as PaymentResponse;
   },
@@ -283,17 +303,45 @@ export const billingApi = {
 
 // ─── AI Generation ───────────────────────────────────────────────────────────
 
+export type AiGenerationMode =
+  | "text-to-image"
+  | "image-to-image"
+  | "image-to-video";
+
+export type ModelTier = "fast" | "standard" | "premium";
+
+export type AiAspectRatio = "portrait" | "landscape" | "square" | "custom";
+
+export type OutputFormat = "png" | "jpeg" | "webp";
+
+export type AiPlatform = "instagram" | "tiktok" | "general";
+
+export type AiTone =
+  | "professional"
+  | "casual"
+  | "humorous"
+  | "inspirational";
+
 export interface GeneratePayload {
-  type: string;
-  prompt?: string;
-  platform?: string;
-  tone?: string;
-  options?: Record<string, unknown>;
+  mode: AiGenerationMode;
+  modelTier?: ModelTier;
+  prompt: string;
+  enhancePrompt?: boolean;
+  aspectRatio?: AiAspectRatio;
+  customWidth?: number;
+  customHeight?: number;
+  outputFormat?: OutputFormat;
+  imageUrls?: string[];
+  duration?: 5 | 10;
+  platform?: AiPlatform;
+  tone?: AiTone;
 }
 
 export interface GenerateResponse {
   jobId: string;
   status: "queued";
+  creditsCost: number;
+  modelId: string;
 }
 
 export type JobStatus = "queued" | "processing" | "completed" | "failed";
@@ -303,11 +351,15 @@ export interface Job {
   status: JobStatus;
   progress?: number;
   result?: {
-    images: string[];
-    caption?: string;
-    hashtags?: string[];
+    url: string;
+    assetId: string;
   };
+  failedReason?: string;
   error?: string;
+}
+
+export interface PresetPromptsResponse {
+  presets: Record<string, unknown>;
 }
 
 export const aiApi = {
@@ -319,16 +371,28 @@ export const aiApi = {
     const res = await api.get<unknown>(`/jobs/${jobId}`);
     return unwrapApiData<Job>(res.data) as Job;
   },
+  getPresetPrompts: async () => {
+    const res = await api.get<unknown>("/ai/preset-prompts");
+    return unwrapApiData<PresetPromptsResponse>(res.data) as PresetPromptsResponse;
+  },
+  enhancePrompt: async (prompt: string, mode: AiGenerationMode) => {
+    const res = await api.post<unknown>("/ai/enhance-prompt", { prompt, mode });
+    return unwrapApiData<{ enhancedPrompt: string }>(
+      res.data
+    ) as { enhancedPrompt: string };
+  },
 };
 
 // ─── Posts ────────────────────────────────────────────────────────────────────
 
+export type SchedulePlatform = "INSTAGRAM" | "TIKTOK";
+
 export interface SchedulePayload {
+  assetId: string;
+  platform: SchedulePlatform;
   caption: string;
   hashtags: string[];
-  platform: string;
   scheduledAt: string;
-  imageUrl?: string;
 }
 
 export const postsApi = {
@@ -380,6 +444,39 @@ export const socialApi = {
   getConnectUrl: async (platform: string) => {
     const res = await api.get<unknown>(`/social/connect/${platform}`);
     return unwrapApiData<OAuthRedirect>(res.data) as OAuthRedirect;
+  },
+};
+
+// ─── Assets ───────────────────────────────────────────────────────────────────
+
+export interface Asset {
+  id: string;
+  url: string;
+  type: "image" | "video";
+  platform?: string;
+  caption?: string;
+  createdAt?: string;
+}
+
+export interface AssetsPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface AssetsResponse {
+  assets: Asset[];
+  pagination: AssetsPagination;
+}
+
+export const assetsApi = {
+  list: async (page = 1, limit = 20) => {
+    const res = await api.get<unknown>(
+      `/assets?page=${page}&limit=${limit}`
+    );
+    const data = unwrapApiData<AssetsResponse>(res.data);
+    return data as AssetsResponse;
   },
 };
 

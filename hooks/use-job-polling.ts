@@ -2,16 +2,29 @@
 
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { aiApi } from "@/lib/api";
 import { useStudioStore } from "@/store/studio-store";
 
+function jobLabel(mode: string) {
+  if (mode === "image-to-video") return "Video";
+  if (mode === "text-to-image") return "Text to image";
+  return "Image to image";
+}
+
 /**
- * Polls GET /jobs/:jobId every 2.5 seconds while a job is in progress.
- * Updates studio store with job status and results when complete.
+ * Polls GET /jobs/:jobId while a job is in progress.
+ * Updates studio store when complete or failed.
  */
 export function useJobPolling() {
-  const { jobId, jobStatus, setJobStatus, setResults } = useStudioStore();
+  const t = useTranslations("studio");
+  const jobId = useStudioStore((s) => s.jobId);
+  const jobStatus = useStudioStore((s) => s.jobStatus);
+  const generationMode = useStudioStore((s) => s.generationMode);
+  const setJobStatus = useStudioStore((s) => s.setJobStatus);
+  const setResult = useStudioStore((s) => s.setResult);
+  const setGenerationError = useStudioStore((s) => s.setGenerationError);
   const toastedRef = useRef<string | null>(null);
 
   const isActive =
@@ -28,23 +41,27 @@ export function useJobPolling() {
     if (!job) return;
 
     if (job.status === "processing") {
-      setJobStatus("processing", job.progress ?? 50);
+      setJobStatus("processing", job.progress ?? 55);
     }
 
-    if (job.status === "completed" && toastedRef.current !== job.id) {
+    if (job.status === "completed" && job.result && toastedRef.current !== job.id) {
       toastedRef.current = job.id;
-      setResults(
-        job.result?.images ?? [],
-        job.result?.caption,
-        job.result?.hashtags
-      );
-      toast.success("Üretim tamamlandı. Çıktılar hazır.");
+      setResult(job.result, jobLabel(generationMode));
+      toast.success(t("jobComplete"));
     }
 
     if (job.status === "failed" && toastedRef.current !== job.id) {
       toastedRef.current = job.id;
-      setJobStatus("failed", 0);
-      toast.error(job.error ?? "Üretim başarısız. Tekrar deneyin.");
+      const msg = job.failedReason ?? job.error ?? t("jobFailed");
+      setGenerationError(msg);
+      toast.error(msg);
     }
-  }, [job, setJobStatus, setResults]);
+  }, [
+    job,
+    generationMode,
+    setJobStatus,
+    setResult,
+    setGenerationError,
+    t,
+  ]);
 }

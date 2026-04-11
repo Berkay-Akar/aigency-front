@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { Download, ExternalLink, Instagram, ArrowRight } from "lucide-react";
-import { MOCK_ASSETS } from "@/lib/mock-data";
+import { useQuery } from "@tanstack/react-query";
+import { assetsApi } from "@/lib/api";
 
 const PLATFORM_ICONS: Record<string, React.ReactNode> = {
   instagram: <Instagram className="w-3 h-3" />,
@@ -17,7 +20,12 @@ const PLATFORM_ICONS: Record<string, React.ReactNode> = {
 };
 
 export function RecentAssets() {
-  const recent = MOCK_ASSETS.slice(0, 6);
+  const { data, isLoading } = useQuery({
+    queryKey: ["assets", 1, 6],
+    queryFn: () => assetsApi.list(1, 6),
+  });
+
+  const assets = data?.assets ?? [];
 
   return (
     <div>
@@ -35,33 +43,49 @@ export function RecentAssets() {
       </div>
 
       <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-        {recent.map((asset) => (
-          <div key={asset.id} className="group relative aspect-square rounded-2xl overflow-hidden">
-            <img
-              src={asset.url}
-              alt={asset.caption}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
+        {isLoading
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="skeleton aspect-square rounded-2xl"
+              />
+            ))
+          : assets.length > 0
+            ? assets.map((asset) => (
+                <div
+                  key={asset.id}
+                  className="group relative aspect-square rounded-2xl overflow-hidden"
+                >
+                  <img
+                    src={asset.url}
+                    alt={asset.caption ?? ""}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
 
-            {/* Platform badge */}
-            <div className="absolute top-2 left-2 w-5 h-5 rounded-lg bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70">
-              {PLATFORM_ICONS[asset.platform] ?? null}
-            </div>
+                  {asset.platform ? (
+                    <div className="absolute top-2 left-2 w-5 h-5 rounded-lg bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70">
+                      {PLATFORM_ICONS[asset.platform] ?? null}
+                    </div>
+                  ) : null}
 
-            {/* Hover overlay */}
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-              <button className="w-7 h-7 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
-                <Download className="w-3 h-3" />
-              </button>
-              <Link
-                href="/studio"
-                className="w-7 h-7 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-              >
-                <ExternalLink className="w-3 h-3" />
-              </Link>
-            </div>
-          </div>
-        ))}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <button className="w-7 h-7 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
+                      <Download className="w-3 h-3" />
+                    </button>
+                    <Link
+                      href="/studio"
+                      className="w-7 h-7 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </div>
+              ))
+            : (
+                <div className="col-span-6 py-8 text-center text-white/30 text-sm">
+                  No assets yet — generate something in Studio.
+                </div>
+              )}
       </div>
     </div>
   );

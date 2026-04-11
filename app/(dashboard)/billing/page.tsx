@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Zap, CreditCard, Check, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { billingApi } from "@/lib/api";
+import { buildIyzicoCheckoutPayload } from "@/lib/billing-checkout";
+import { useAuthStore } from "@/store/auth-store";
 import {
   Dialog,
   DialogContent,
@@ -89,6 +91,7 @@ function IyzicoCheckoutModal({
 
 export default function BillingPage() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
   const [checkoutHtml, setCheckoutHtml] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
@@ -98,7 +101,21 @@ export default function BillingPage() {
   });
 
   const paymentMutation = useMutation({
-    mutationFn: (packageId: string) => billingApi.createPayment(packageId),
+    mutationFn: (packageId: string) => {
+      const pkg = PACKAGES.find((p) => p.id === packageId);
+      if (!pkg) throw new Error("Unknown package");
+      const appOrigin =
+        typeof window !== "undefined" ? window.location.origin : "";
+      const callbackUrl = `${appOrigin}/billing`;
+      const payload = buildIyzicoCheckoutPayload({
+        creditAmount: pkg.credits,
+        price: pkg.priceNum,
+        buyerEmail: user?.email ?? "buyer@example.com",
+        buyerDisplayName: user?.name ?? "Customer",
+        callbackUrl,
+      });
+      return billingApi.createPayment(payload);
+    },
     onSuccess: (data) => {
       setCheckoutHtml(data.checkoutFormContent);
       setCheckoutOpen(true);
@@ -257,10 +274,10 @@ export default function BillingPage() {
         <h3 className="text-sm font-semibold text-white mb-4">Credit costs</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Product Enhance", cost: "4 credits" },
-            { label: "Fashion Model", cost: "8 credits" },
-            { label: "BG Replace", cost: "3 credits" },
-            { label: "Video", cost: "20 credits" },
+            { label: "Image generation", cost: "10 credits" },
+            { label: "Image edit / I2I", cost: "10 credits" },
+            { label: "Video (I2V)", cost: "50 credits" },
+            { label: "Prompt enhance", cost: "OpenAI dependent" },
           ].map(({ label, cost }) => (
             <div key={label} className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />

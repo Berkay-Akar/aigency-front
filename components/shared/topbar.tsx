@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ChevronDown, Bell, Search } from "lucide-react";
 import {
   DropdownMenu,
@@ -11,10 +12,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CreditBadge } from "./credit-badge";
+import { LanguageSwitcher } from "./language-switcher";
 import { useAppStore } from "@/store/app-store";
 import { useAuthStore } from "@/store/auth-store";
 
 export function Topbar() {
+  const t = useTranslations("common");
   const { workspace } = useAppStore();
   const { user, logout } = useAuthStore();
 
@@ -36,16 +39,25 @@ export function Topbar() {
             {workspace?.[0] ?? "W"}
           </span>
         </div>
-        <span className="hidden sm:inline">{workspace || "Workspace"}</span>
+        <span className="hidden sm:inline">{workspace || t("workspace")}</span>
         <ChevronDown className="w-3.5 h-3.5 text-white/30" />
       </div>
 
       {/* Right: credits + notifications + avatar */}
       <div className="flex items-center gap-2 md:gap-3">
-        <button className="w-8 h-8 rounded-xl hidden sm:flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-all">
-          <Search className="w-4 h-4" />
+        <LanguageSwitcher />
+        <button
+          type="button"
+          aria-label={t("search")}
+          className="w-8 h-8 rounded-xl hidden sm:flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-all"
+        >
+          <Search className="w-4 h-4" aria-hidden />
         </button>
-        <button className="w-8 h-8 rounded-xl flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-all relative">
+        <button
+          type="button"
+          aria-label={t("notifications")}
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-all relative"
+        >
           <Bell className="w-4 h-4" />
           <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500" />
         </button>
@@ -65,22 +77,22 @@ export function Topbar() {
             className="bg-[#111] border-white/[0.08] rounded-xl shadow-2xl w-48"
           >
             <div className="px-3 py-2.5">
-              <p className="text-sm font-medium text-white">{user?.name ?? "User"}</p>
+              <p className="text-sm font-medium text-white">{user?.name ?? t("user")}</p>
               <p className="text-xs text-white/40">{user?.email ?? ""}</p>
             </div>
             <DropdownMenuSeparator className="bg-white/[0.06]" />
             <DropdownMenuItem className="text-sm text-white/60 hover:text-white rounded-lg cursor-pointer">
-              <Link href="/settings" className="w-full">Profile</Link>
+              <Link href="/settings" className="w-full">{t("profile")}</Link>
             </DropdownMenuItem>
             <DropdownMenuItem className="text-sm text-white/60 hover:text-white rounded-lg cursor-pointer">
-              <Link href="/billing" className="w-full">Billing</Link>
+              <Link href="/billing" className="w-full">{t("billing")}</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-white/[0.06]" />
             <DropdownMenuItem
               onClick={logout}
               className="text-sm text-red-400 hover:text-red-300 rounded-lg cursor-pointer"
             >
-              Sign out
+              {t("signOut")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

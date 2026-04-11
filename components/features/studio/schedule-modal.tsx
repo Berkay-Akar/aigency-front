@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 const schema = z.object({
   caption: z.string().min(1, "Açıklama gerekli"),
   hashtags: z.string(),
-  platform: z.enum(["instagram", "tiktok", "facebook", "twitter"]),
+  platform: z.enum(["instagram", "tiktok"]),
   scheduledAt: z.string().min(1, "Tarih ve saat gerekli"),
 });
 
@@ -30,22 +30,23 @@ type FormData = z.infer<typeof schema>;
 const PLATFORMS = [
   { id: "instagram" as const, label: "Instagram" },
   { id: "tiktok" as const, label: "TikTok" },
-  { id: "facebook" as const, label: "Facebook" },
-  { id: "twitter" as const, label: "X / Twitter" },
 ];
 
 interface ScheduleModalProps {
   open: boolean;
   onClose: () => void;
+  /** Required by API — generated asset id from Studio. */
+  assetId?: string;
   imageUrl?: string;
   defaultCaption?: string;
   defaultHashtags?: string[];
-  defaultPlatform?: "instagram" | "tiktok" | "facebook" | "twitter";
+  defaultPlatform?: "instagram" | "tiktok";
 }
 
 export function ScheduleModal({
   open,
   onClose,
+  assetId,
   imageUrl,
   defaultCaption = "",
   defaultHashtags = [],
@@ -53,7 +54,7 @@ export function ScheduleModal({
 }: ScheduleModalProps) {
   const queryClient = useQueryClient();
   const [selectedPlatform, setSelectedPlatform] = useState<
-    "instagram" | "tiktok" | "facebook" | "twitter"
+    "instagram" | "tiktok"
   >("instagram");
 
   const {
@@ -74,22 +75,28 @@ export function ScheduleModal({
   });
 
   const mutation = useMutation({
-    mutationFn: (data: FormData) =>
-      postsApi.schedule({
+    mutationFn: (data: FormData) => {
+      if (!assetId) {
+        toast.error("Varlık kimliği gerekli. Önce Studio’da üretin veya kütüphaneden seçin.");
+        return Promise.reject(new Error("Missing assetId"));
+      }
+      const hashtags = data.hashtags
+        .split(/\s+/)
+        .filter((h) => h.startsWith("#"))
+        .concat(
+          data.hashtags
+            .split(/\s+/)
+            .filter((h) => !h.startsWith("#") && h.length > 0)
+            .map((h) => `#${h}`)
+        );
+      return postsApi.schedule({
+        assetId,
         caption: data.caption,
-        hashtags: data.hashtags
-          .split(/\s+/)
-          .filter((h) => h.startsWith("#"))
-          .concat(
-            data.hashtags
-              .split(/\s+/)
-              .filter((h) => !h.startsWith("#") && h.length > 0)
-              .map((h) => `#${h}`)
-          ),
-        platform: data.platform,
+        hashtags,
+        platform: data.platform === "instagram" ? "INSTAGRAM" : "TIKTOK",
         scheduledAt: new Date(data.scheduledAt).toISOString(),
-        imageUrl,
-      }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["calendar"] });
@@ -102,9 +109,7 @@ export function ScheduleModal({
     },
   });
 
-  const handlePlatformSelect = (
-    p: "instagram" | "tiktok" | "facebook" | "twitter"
-  ) => {
+  const handlePlatformSelect = (p: "instagram" | "tiktok") => {
     setSelectedPlatform(p);
     setValue("platform", p);
   };
@@ -130,6 +135,12 @@ export function ScheduleModal({
         <form onSubmit={handleSubmit((d) => mutation.mutate(d))}>
           <div className="px-6 pb-6 space-y-4 mt-4">
             {/* Preview */}
+            {!assetId && (
+              <p className="text-xs text-amber-400/90 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-3 py-2">
+                API bir varlık kimliği gerektirir. Takvimden planlamak için önce Studio’da içerik üretin; varlık
+                kimliği otomatik eklenir.
+              </p>
+            )}
             {imageUrl && (
               <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
                 <img
@@ -227,7 +238,7 @@ export function ScheduleModal({
               </button>
               <button
                 type="submit"
-                disabled={mutation.isPending}
+                disabled={mutation.isPending || !assetId}
                 className="flex-1 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
               >
                 {mutation.isPending && (
