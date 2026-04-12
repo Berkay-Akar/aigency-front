@@ -1,15 +1,26 @@
+import { isAxiosError } from "axios";
 import { create } from "zustand";
 import {
   aiApi,
+  productApi,
   type AiAspectRatio,
   type AiGenerationMode,
   type AiPlatform,
   type AiTone,
   type GeneratePayload,
   type JobStatus,
-  type ModelTier,
+  type ModelPhotoOptions,
   type OutputFormat,
 } from "@/lib/api";
+import { priceTierToModelTier } from "@/lib/fal-models";
+import { buildResolvedReferenceImageUrls } from "@/lib/studio-reference-url";
+import {
+  defaultFalModelId,
+  isFalModelAllowedForMode,
+  modelsForModeAndTier,
+  priceTierForModel,
+  type StudioPriceTier,
+} from "@/lib/studio-model-catalog";
 
 type StudioAspectRatio = Exclude<AiAspectRatio, "custom">;
 
@@ -30,15 +41,32 @@ export type StudioUiMode = "quick" | "customize";
 
 export type BackgroundMode = "auto" | "transparent" | "original";
 
+export type ProductFlow =
+  | "model-photo"
+  | "product-angles"
+  | "product-reference"
+  | "product-swap"
+  | "ghost-mannequin"
+  | "photo-to-video";
+
+export type ProductResolution = "1K" | "2K";
+export type ProductModelTier = "fast" | "standard" | "premium";
+
+const DEFAULT_STUDIO_MODE: AiGenerationMode = "image-to-image";
+const DEFAULT_STUDIO_PRICE_TIER: StudioPriceTier = "orta";
+
 interface StudioState {
   uiMode: StudioUiMode;
   generationMode: AiGenerationMode;
-  modelTier: ModelTier;
+  /** Ucuz / orta / pahalı — API `modelTier` ile eşlenir. */
+  studioPriceTier: StudioPriceTier;
+  /** Katalogdaki tam fal model yolu. */
+  falModelId: string;
   prompt: string;
   enhancePrompt: boolean;
   aspectRatio: StudioAspectRatio;
   outputFormat: OutputFormat;
-  /** Local object URLs or HTTPS — API accepts only public URLs. */
+  /** Önizleme: blob:/data:/http(s) — üretimde blob/data sıkıştırılıp data URL olarak gönderilir. */
   mainReferenceUrl: string | null;
   styleReferenceUrl: string | null;
   backgroundReferenceUrl: string | null;
@@ -70,9 +98,63 @@ interface StudioState {
   lastCreditsCost: number | null;
   recentGenerations: RecentGenerationItem[];
 
+  // ─── Product Studio ────────────────────────────────────────────────────────
+  /** Top-level tab: creative (existing) vs product (6 new flows) */
+  studioTab: "creative" | "product";
+  activeProductFlow: ProductFlow;
+  /** Cached from GET /ai/model-photo/options */
+  modelPhotoOptions: ModelPhotoOptions | null;
+  /** Shared product image uploads (blob: or https:) */
+  productImageUrls: string[];
+  productResolution: ProductResolution;
+  productModelTier: ProductModelTier;
+  productCustomPrompt: string;
+  // Flow 1 — Model Photo
+  productStyleMode: "with-model" | "product-only";
+  modelGender: string;
+  modelEthnicity: string;
+  modelAge: string;
+  modelSkinColor: string;
+  modelFaceType: string;
+  modelEyeColor: string;
+  modelExpression: string;
+  modelBodySize: string;
+  modelHeight: number;
+  modelHairColor: string;
+  modelHairstyle: string;
+  modelShotType: string;
+  productOnlyShotType: string;
+  // Flow 2 — Product Angles
+  anglesCount: 1 | 2 | 3;
+  // Flow 3 — Product Reference
+  productReferenceImageUrl: string | null;
+  productReferenceStyleMode: "minimal" | "bold";
+  // Flow 4 — Product Swap
+  productSceneImageUrl: string | null;
+  // Flow 5 — Ghost Mannequin
+  ghostQuality: "standard" | "premium";
+  ghostBackgroundColor: string;
+  // Flow 6 — Photo to Video
+  videoPlatform: "instagram" | "tiktok" | "general";
+  videoDuration: 5 | 10;
+  // Product job state
+  productJobIds: string[];
+  productResults: GenerationResult[];
+  isProductGenerating: boolean;
+  productError: string | null;
+  productProgress: number;
+  productLastCreditsCost: number | null;
+  productRecentSessions: {
+    id: string;
+    results: GenerationResult[];
+    flow: ProductFlow;
+    at: string;
+  }[];
+
   setUiMode: (m: StudioUiMode) => void;
   setGenerationMode: (m: AiGenerationMode) => void;
-  setModelTier: (t: ModelTier) => void;
+  setStudioPriceTier: (t: StudioPriceTier) => void;
+  setFalModelId: (id: string) => void;
   setPrompt: (p: string) => void;
   setEnhancePrompt: (v: boolean) => void;
   setAspectRatio: (r: StudioAspectRatio) => void;
@@ -115,6 +197,48 @@ interface StudioState {
   startGeneration: () => Promise<string | null>;
   runMockGeneration: () => Promise<void>;
   enhancePromptWithApi: () => Promise<boolean>;
+
+  // ─── Product Studio setters ────────────────────────────────────────────────
+  setStudioTab: (tab: "creative" | "product") => void;
+  setActiveProductFlow: (flow: ProductFlow) => void;
+  setModelPhotoOptions: (opts: ModelPhotoOptions | null) => void;
+  setProductImageUrls: (urls: string[]) => void;
+  setProductResolution: (r: ProductResolution) => void;
+  setProductModelTier: (t: ProductModelTier) => void;
+  setProductCustomPrompt: (p: string) => void;
+  setProductStyleMode: (m: "with-model" | "product-only") => void;
+  setModelGender: (v: string) => void;
+  setModelEthnicity: (v: string) => void;
+  setModelAge: (v: string) => void;
+  setModelSkinColor: (v: string) => void;
+  setModelFaceType: (v: string) => void;
+  setModelEyeColor: (v: string) => void;
+  setModelExpression: (v: string) => void;
+  setModelBodySize: (v: string) => void;
+  setModelHeight: (n: number) => void;
+  setModelHairColor: (v: string) => void;
+  setModelHairstyle: (v: string) => void;
+  setModelShotType: (v: string) => void;
+  setProductOnlyShotType: (v: string) => void;
+  setAnglesCount: (n: 1 | 2 | 3) => void;
+  setProductReferenceImageUrl: (u: string | null) => void;
+  setProductReferenceStyleMode: (m: "minimal" | "bold") => void;
+  setProductSceneImageUrl: (u: string | null) => void;
+  setGhostQuality: (q: "standard" | "premium") => void;
+  setGhostBackgroundColor: (c: string) => void;
+  setVideoPlatform: (p: "instagram" | "tiktok" | "general") => void;
+  setVideoDuration: (d: 5 | 10) => void;
+  setProductJobIds: (ids: string[]) => void;
+  setProductResults: (results: GenerationResult[]) => void;
+  setIsProductGenerating: (v: boolean) => void;
+  clearProductRecentSessions: () => void;
+  setProductError: (e: string | null) => void;
+  setProductProgress: (n: number) => void;
+  // ─── Product Studio methods ────────────────────────────────────────────────
+  loadModelPhotoOptions: () => Promise<void>;
+  startProductGeneration: () => Promise<string[] | null>;
+  getProductCreditEstimate: () => number;
+  resetProductState: () => void;
 }
 
 const MOCK_RESULT =
@@ -166,10 +290,55 @@ const initialJob = {
   lastCreditsCost: null as number | null,
 };
 
+const initialProductState = {
+  studioTab: "creative" as "creative" | "product",
+  activeProductFlow: "model-photo" as ProductFlow,
+  modelPhotoOptions: null as ModelPhotoOptions | null,
+  productImageUrls: [] as string[],
+  productResolution: "1K" as ProductResolution,
+  productModelTier: "standard" as ProductModelTier,
+  productCustomPrompt: "",
+  productStyleMode: "with-model" as "with-model" | "product-only",
+  modelGender: "female",
+  modelEthnicity: "international",
+  modelAge: "young-adult",
+  modelSkinColor: "light",
+  modelFaceType: "oval",
+  modelEyeColor: "dark-brown",
+  modelExpression: "soft-neutral",
+  modelBodySize: "m",
+  modelHeight: 170,
+  modelHairColor: "dark-brown",
+  modelHairstyle: "straight-long",
+  modelShotType: "full-body",
+  productOnlyShotType: "product",
+  anglesCount: 1 as 1 | 2 | 3,
+  productReferenceImageUrl: null as string | null,
+  productReferenceStyleMode: "minimal" as "minimal" | "bold",
+  productSceneImageUrl: null as string | null,
+  ghostQuality: "standard" as "standard" | "premium",
+  ghostBackgroundColor: "white",
+  videoPlatform: "instagram" as "instagram" | "tiktok" | "general",
+  videoDuration: 5 as 5 | 10,
+  productJobIds: [] as string[],
+  productResults: [] as GenerationResult[],
+  productRecentSessions: [] as {
+    id: string;
+    results: GenerationResult[];
+    flow: ProductFlow;
+    at: string;
+  }[],
+  isProductGenerating: false,
+  productError: null as string | null,
+  productProgress: 0,
+  productLastCreditsCost: null as number | null,
+};
+
 export const useStudioStore = create<StudioState>((set, get) => ({
   uiMode: "quick",
-  generationMode: "image-to-image",
-  modelTier: "standard",
+  generationMode: DEFAULT_STUDIO_MODE,
+  studioPriceTier: DEFAULT_STUDIO_PRICE_TIER,
+  falModelId: defaultFalModelId(DEFAULT_STUDIO_MODE, DEFAULT_STUDIO_PRICE_TIER),
   prompt: "",
   enhancePrompt: false,
   aspectRatio: "square",
@@ -181,16 +350,50 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   ...initialCustomize,
   ...initialJob,
   recentGenerations: [],
+  ...initialProductState,
 
   setUiMode: (uiMode) => set({ uiMode }),
   setGenerationMode: (generationMode) =>
-    set({
-      generationMode,
-      ...initialJob,
-      result: null,
-      generationError: null,
+    set((state) => {
+      const falModelId = isFalModelAllowedForMode(
+        generationMode,
+        state.falModelId,
+      )
+        ? state.falModelId
+        : defaultFalModelId(generationMode, state.studioPriceTier);
+      return {
+        generationMode,
+        falModelId,
+        ...initialJob,
+        result: null,
+        generationError: null,
+      };
     }),
-  setModelTier: (modelTier) => set({ modelTier }),
+  setStudioPriceTier: (studioPriceTier) =>
+    set((state) => {
+      const options = modelsForModeAndTier(
+        state.generationMode,
+        studioPriceTier,
+      );
+      const stillValid = options.some((m) => m.falModelId === state.falModelId);
+      return {
+        studioPriceTier,
+        falModelId: stillValid
+          ? state.falModelId
+          : defaultFalModelId(state.generationMode, studioPriceTier),
+      };
+    }),
+  setFalModelId: (falModelId) =>
+    set((state) => {
+      if (!isFalModelAllowedForMode(state.generationMode, falModelId)) {
+        return {};
+      }
+      const pt = priceTierForModel(state.generationMode, falModelId);
+      return {
+        falModelId,
+        ...(pt ? { studioPriceTier: pt } : {}),
+      };
+    }),
   setPrompt: (prompt) => set({ prompt }),
   setEnhancePrompt: (enhancePrompt) => set({ enhancePrompt }),
   setAspectRatio: (aspectRatio) => set({ aspectRatio }),
@@ -282,8 +485,12 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   resetProject: () =>
     set({
       uiMode: "quick",
-      generationMode: "image-to-image",
-      modelTier: "standard",
+      generationMode: DEFAULT_STUDIO_MODE,
+      studioPriceTier: DEFAULT_STUDIO_PRICE_TIER,
+      falModelId: defaultFalModelId(
+        DEFAULT_STUDIO_MODE,
+        DEFAULT_STUDIO_PRICE_TIER,
+      ),
       prompt: "",
       enhancePrompt: false,
       aspectRatio: "square",
@@ -327,7 +534,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     if (body) chunks.push(body);
 
     chunks.push(
-      `Style strength ~${s.styleStrength}%. Prompt adherence ~${s.promptStrength}%.`
+      `Style strength ~${s.styleStrength}%. Prompt adherence ~${s.promptStrength}%.`,
     );
     chunks.push(`Background mode: ${s.backgroundMode}.`);
 
@@ -340,7 +547,9 @@ export const useStudioStore = create<StudioState>((set, get) => ({
 
     const out = chunks.join("\n\n").trim();
     if (out.length >= 3) return out;
-    return base.length >= 3 ? base : "Premium product visualization, soft studio light, high detail.";
+    return base.length >= 3
+      ? base
+      : "Premium product visualization, soft studio light, high detail.";
   },
 
   getEstimatedCredits: () => {
@@ -353,19 +562,13 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     return [mainReferenceUrl, styleReferenceUrl, backgroundReferenceUrl].filter(
       (u): u is string =>
         typeof u === "string" &&
-        (u.startsWith("https://") || u.startsWith("http://"))
+        (u.startsWith("https://") || u.startsWith("http://")),
     );
   },
 
-  shouldUseMock: () => {
-    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim();
-    if (!base) return true;
-    const s = get();
-    if (s.generationMode === "text-to-image") return false;
-    const urls = s.getApiImageUrls();
-    if (urls.length === 0) return true;
-    return false;
-  },
+  /** Sadece `NEXT_PUBLIC_API_URL` yoksa — adres varken görsel modlarında mock yerine NEED_HTTPS_REFERENCES veya gerçek istek. */
+  shouldUseMock: () =>
+    (process.env.NEXT_PUBLIC_API_URL ?? "").trim().length === 0,
 
   runMockGeneration: async () => {
     const label =
@@ -434,16 +637,21 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       return null;
     }
 
-    if (
-      s.generationMode !== "text-to-image" &&
-      s.getApiImageUrls().length === 0
-    ) {
+    const refSlots = [
+      s.mainReferenceUrl,
+      s.styleReferenceUrl,
+      s.backgroundReferenceUrl,
+    ];
+    const needsRefs = s.generationMode !== "text-to-image";
+    const hasAnyReferencePreview = refSlots.some(Boolean);
+
+    if (needsRefs && !hasAnyReferencePreview) {
       if (s.shouldUseMock()) {
         await get().runMockGeneration();
         return null;
       }
       set({
-        generationError: "NEED_HTTPS_REFERENCES",
+        generationError: "NEED_REFERENCE_IMAGE",
         isGenerating: false,
       });
       return null;
@@ -454,12 +662,22 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       return null;
     }
 
-    const imageUrls =
-      s.generationMode === "text-to-image" ? [] : s.getApiImageUrls();
+    let imageUrls: string[] = [];
+    if (needsRefs) {
+      imageUrls = await buildResolvedReferenceImageUrls(refSlots);
+      if (imageUrls.length === 0) {
+        set({
+          generationError: "REFERENCE_PREPARE_FAILED",
+          isGenerating: false,
+        });
+        return null;
+      }
+    }
 
     const payload: GeneratePayload = {
       mode: s.generationMode,
-      modelTier: s.modelTier,
+      modelTier: priceTierToModelTier(s.studioPriceTier),
+      modelId: s.falModelId,
       prompt: composed.slice(0, 4000),
       enhancePrompt: s.enhancePrompt,
       aspectRatio: s.aspectRatio,
@@ -487,12 +705,415 @@ export const useStudioStore = create<StudioState>((set, get) => ({
         lastCreditsCost: res.creditsCost,
       });
       return res.jobId;
-    } catch {
+    } catch (e) {
+      const insufficient =
+        isAxiosError(e) &&
+        (e.response?.status === 402 ||
+          /credit|kredi|402/i.test(
+            String(
+              (e.response?.data as { message?: string } | undefined)?.message ??
+                "",
+            ),
+          ));
       set({
         isGenerating: false,
         jobStatus: "failed",
         progress: 0,
-        generationError: "GENERATE_REQUEST_FAILED",
+        generationError: insufficient
+          ? "INSUFFICIENT_CREDITS"
+          : "GENERATE_REQUEST_FAILED",
+      });
+      return null;
+    }
+  },
+
+  // ─── Product Studio setters ───────────────────────────────────────────────
+  setStudioTab: (studioTab) => set({ studioTab }),
+  setActiveProductFlow: (activeProductFlow) =>
+    set({
+      activeProductFlow,
+      productResults: [],
+      productJobIds: [],
+      productError: null,
+      productProgress: 0,
+    }),
+  setModelPhotoOptions: (modelPhotoOptions) => set({ modelPhotoOptions }),
+  setProductImageUrls: (productImageUrls) => set({ productImageUrls }),
+  setProductResolution: (productResolution) => set({ productResolution }),
+  setProductModelTier: (productModelTier) => set({ productModelTier }),
+  setProductCustomPrompt: (productCustomPrompt) => set({ productCustomPrompt }),
+  setProductStyleMode: (productStyleMode) => set({ productStyleMode }),
+  setModelGender: (modelGender) => set({ modelGender }),
+  setModelEthnicity: (modelEthnicity) => set({ modelEthnicity }),
+  setModelAge: (modelAge) => set({ modelAge }),
+  setModelSkinColor: (modelSkinColor) => set({ modelSkinColor }),
+  setModelFaceType: (modelFaceType) => set({ modelFaceType }),
+  setModelEyeColor: (modelEyeColor) => set({ modelEyeColor }),
+  setModelExpression: (modelExpression) => set({ modelExpression }),
+  setModelBodySize: (modelBodySize) => set({ modelBodySize }),
+  setModelHeight: (modelHeight) => set({ modelHeight }),
+  setModelHairColor: (modelHairColor) => set({ modelHairColor }),
+  setModelHairstyle: (modelHairstyle) => set({ modelHairstyle }),
+  setModelShotType: (modelShotType) => set({ modelShotType }),
+  setProductOnlyShotType: (productOnlyShotType) => set({ productOnlyShotType }),
+  setAnglesCount: (anglesCount) => set({ anglesCount }),
+  setProductReferenceImageUrl: (productReferenceImageUrl) =>
+    set({ productReferenceImageUrl }),
+  setProductReferenceStyleMode: (productReferenceStyleMode) =>
+    set({ productReferenceStyleMode }),
+  setProductSceneImageUrl: (productSceneImageUrl) =>
+    set({ productSceneImageUrl }),
+  setGhostQuality: (ghostQuality) => set({ ghostQuality }),
+  setGhostBackgroundColor: (ghostBackgroundColor) =>
+    set({ ghostBackgroundColor }),
+  setVideoPlatform: (videoPlatform) => set({ videoPlatform }),
+  setVideoDuration: (videoDuration) => set({ videoDuration }),
+  setProductJobIds: (productJobIds) => set({ productJobIds }),
+  setProductResults: (productResults) =>
+    set((state) => ({
+      productResults,
+      isProductGenerating: false,
+      productProgress: 100,
+      productRecentSessions:
+        productResults.length > 0
+          ? [
+              {
+                id: randomId(),
+                results: productResults,
+                flow: state.activeProductFlow,
+                at: new Date().toLocaleTimeString(undefined, {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+              },
+              ...state.productRecentSessions,
+            ].slice(0, 10)
+          : state.productRecentSessions,
+    })),
+  clearProductRecentSessions: () => set({ productRecentSessions: [] }),
+  setIsProductGenerating: (isProductGenerating) => set({ isProductGenerating }),
+  setProductError: (productError) =>
+    set({ productError, isProductGenerating: false, productProgress: 0 }),
+  setProductProgress: (productProgress) => set({ productProgress }),
+
+  // ─── Product Studio: load options ────────────────────────────────────────
+  loadModelPhotoOptions: async () => {
+    if (get().modelPhotoOptions) return; // already cached
+    try {
+      const opts = await productApi.getModelPhotoOptions();
+      const s = get();
+      set({
+        modelPhotoOptions: opts,
+        // fill any field that isn't in the returned option set back to the first valid option
+        modelGender: opts.genders.includes(s.modelGender) ? s.modelGender : (opts.genders[0] ?? ""),
+        modelEthnicity: opts.ethnicities.includes(s.modelEthnicity) ? s.modelEthnicity : (opts.ethnicities[0] ?? ""),
+        modelAge: opts.ageRanges.includes(s.modelAge) ? s.modelAge : (opts.ageRanges[0] ?? ""),
+        modelSkinColor: opts.skinColors.includes(s.modelSkinColor) ? s.modelSkinColor : (opts.skinColors[0] ?? ""),
+        modelFaceType: opts.faceTypes.includes(s.modelFaceType) ? s.modelFaceType : (opts.faceTypes[0] ?? ""),
+        modelEyeColor: opts.eyeColors.includes(s.modelEyeColor) ? s.modelEyeColor : (opts.eyeColors[0] ?? ""),
+        modelExpression: opts.expressions.includes(s.modelExpression) ? s.modelExpression : (opts.expressions[0] ?? ""),
+        modelBodySize: opts.bodySizes.includes(s.modelBodySize) ? s.modelBodySize : (opts.bodySizes[0] ?? ""),
+        modelHairColor: opts.hairColors.includes(s.modelHairColor) ? s.modelHairColor : (opts.hairColors[0] ?? ""),
+        modelHairstyle: opts.hairstyles.includes(s.modelHairstyle) ? s.modelHairstyle : (opts.hairstyles[0] ?? ""),
+        modelShotType: opts.shotTypes.includes(s.modelShotType) ? s.modelShotType : (opts.shotTypes[0] ?? ""),
+      });
+    } catch {
+      // silent — form will still work with FALLBACK_OPTS
+    }
+  },
+
+  // ─── Product Studio: credit estimate ─────────────────────────────────────
+  getProductCreditEstimate: () => {
+    const s = get();
+    switch (s.activeProductFlow) {
+      case "model-photo":
+        return s.productResolution === "2K" ? 25 : 10;
+      case "product-angles":
+        return s.anglesCount * (s.productResolution === "2K" ? 25 : 10);
+      case "product-reference":
+        return s.productResolution === "2K" ? 25 : 10;
+      case "product-swap":
+        return s.productResolution === "2K" ? 25 : 10;
+      case "ghost-mannequin":
+        return s.ghostQuality === "premium" ? 40 : 20;
+      case "photo-to-video":
+        return s.videoDuration === 10 ? 100 : 50;
+      default:
+        return 10;
+    }
+  },
+
+  // ─── Product Studio: reset ────────────────────────────────────────────────
+  resetProductState: () =>
+    set({
+      productResults: [],
+      productJobIds: [],
+      productError: null,
+      productProgress: 0,
+      isProductGenerating: false,
+      productLastCreditsCost: null,
+    }),
+
+  // ─── Product Studio: start generation ────────────────────────────────────
+  startProductGeneration: async () => {
+    const s = get();
+    set({
+      isProductGenerating: true,
+      productError: null,
+      productResults: [],
+      productJobIds: [],
+      productProgress: 5,
+    });
+
+    try {
+      switch (s.activeProductFlow) {
+        // ── Flow 1: Model Photo ──────────────────────────────────────────────
+        case "model-photo": {
+          if (s.productImageUrls.length === 0) {
+            set({
+              isProductGenerating: false,
+              productError: "Ürün görseli seçin",
+            });
+            return null;
+          }
+          const resolvedUrls = await buildResolvedReferenceImageUrls(
+            s.productImageUrls,
+          );
+          if (resolvedUrls.length === 0) {
+            set({
+              isProductGenerating: false,
+              productError: "Görsel yüklenemedi",
+            });
+            return null;
+          }
+          const payload = {
+            productImageUrls: resolvedUrls,
+            styleMode: s.productStyleMode,
+            resolution: s.productResolution,
+            modelTier: s.productModelTier,
+            outputFormat: "webp" as const,
+            customPrompt: s.productCustomPrompt || undefined,
+            ...(s.productStyleMode === "with-model"
+              ? {
+                  modelDetails: {
+                    gender: s.modelGender || undefined,
+                    ethnicity: s.modelEthnicity || undefined,
+                    age: s.modelAge || undefined,
+                    skinColor: s.modelSkinColor || undefined,
+                    faceType: s.modelFaceType || undefined,
+                    eyeColor: s.modelEyeColor || undefined,
+                    expression: s.modelExpression || undefined,
+                  },
+                  customization: {
+                    bodySize: s.modelBodySize || undefined,
+                    height: s.modelHeight || undefined,
+                    hairColor: s.modelHairColor || undefined,
+                    hairstyle: s.modelHairstyle || undefined,
+                    shotType: s.modelShotType || undefined,
+                  },
+                }
+              : { shotType: s.productOnlyShotType || "product" }),
+          };
+          const res = await productApi.generateModelPhoto(payload);
+          set({
+            productJobIds: [res.jobId],
+            productLastCreditsCost: res.creditsCost,
+            productProgress: 15,
+          });
+          return [res.jobId];
+        }
+
+        // ── Flow 2: Product Angles ───────────────────────────────────────────
+        case "product-angles": {
+          if (s.productImageUrls.length === 0) {
+            set({
+              isProductGenerating: false,
+              productError: "Ürün görseli seçin",
+            });
+            return null;
+          }
+          const [resolvedUrl] = await buildResolvedReferenceImageUrls([
+            s.productImageUrls[0],
+          ]);
+          if (!resolvedUrl) {
+            set({
+              isProductGenerating: false,
+              productError: "Görsel yüklenemedi",
+            });
+            return null;
+          }
+          const res = await productApi.generateProductAngles({
+            productImageUrl: resolvedUrl,
+            count: s.anglesCount,
+            resolution: s.productResolution,
+            modelTier: s.productModelTier,
+            outputFormat: "webp",
+            customPrompt: s.productCustomPrompt || undefined,
+          });
+          set({
+            productJobIds: res.jobIds,
+            productLastCreditsCost: res.totalCredits,
+            productProgress: 15,
+          });
+          return res.jobIds;
+        }
+
+        // ── Flow 3: Product Reference ────────────────────────────────────────
+        case "product-reference": {
+          if (s.productImageUrls.length === 0 || !s.productReferenceImageUrl) {
+            set({
+              isProductGenerating: false,
+              productError: "Ürün ve referans görseli seçin",
+            });
+            return null;
+          }
+          const [productUrl, referenceUrl] =
+            await buildResolvedReferenceImageUrls([
+              s.productImageUrls[0],
+              s.productReferenceImageUrl,
+            ]);
+          if (!productUrl || !referenceUrl) {
+            set({
+              isProductGenerating: false,
+              productError: "Görsel yüklenemedi",
+            });
+            return null;
+          }
+          const res = await productApi.generateProductReference({
+            productImageUrl: productUrl,
+            referenceImageUrl: referenceUrl,
+            styleMode: s.productReferenceStyleMode,
+            resolution: s.productResolution,
+            modelTier: s.productModelTier,
+            outputFormat: "webp",
+            customPrompt: s.productCustomPrompt || undefined,
+          });
+          set({
+            productJobIds: [res.jobId],
+            productLastCreditsCost: res.creditsCost,
+            productProgress: 15,
+          });
+          return [res.jobId];
+        }
+
+        // ── Flow 4: Product Swap ─────────────────────────────────────────────
+        case "product-swap": {
+          if (s.productImageUrls.length === 0 || !s.productSceneImageUrl) {
+            set({
+              isProductGenerating: false,
+              productError: "Ürün ve sahne görseli seçin",
+            });
+            return null;
+          }
+          const [productUrl, sceneUrl] = await buildResolvedReferenceImageUrls([
+            s.productImageUrls[0],
+            s.productSceneImageUrl,
+          ]);
+          if (!productUrl || !sceneUrl) {
+            set({
+              isProductGenerating: false,
+              productError: "Görsel yüklenemedi",
+            });
+            return null;
+          }
+          const res = await productApi.generateProductSwap({
+            productImageUrl: productUrl,
+            sceneImageUrl: sceneUrl,
+            resolution: s.productResolution,
+            modelTier: s.productModelTier,
+            outputFormat: "webp",
+            customPrompt: s.productCustomPrompt || undefined,
+          });
+          set({
+            productJobIds: [res.jobId],
+            productLastCreditsCost: res.creditsCost,
+            productProgress: 15,
+          });
+          return [res.jobId];
+        }
+
+        // ── Flow 5: Ghost Mannequin ──────────────────────────────────────────
+        case "ghost-mannequin": {
+          if (s.productImageUrls.length === 0) {
+            set({
+              isProductGenerating: false,
+              productError: "Giysi görseli seçin",
+            });
+            return null;
+          }
+          const [imageUrl] = await buildResolvedReferenceImageUrls([
+            s.productImageUrls[0],
+          ]);
+          if (!imageUrl) {
+            set({
+              isProductGenerating: false,
+              productError: "Görsel yüklenemedi",
+            });
+            return null;
+          }
+          const res = await productApi.generateGhostMannequin({
+            productImageUrl: imageUrl,
+            quality: s.ghostQuality,
+            backgroundColor: s.ghostBackgroundColor || "white",
+            outputFormat: "png",
+            customPrompt: s.productCustomPrompt || undefined,
+          });
+          set({
+            productJobIds: [res.jobId],
+            productLastCreditsCost: res.creditsCost,
+            productProgress: 15,
+          });
+          return [res.jobId];
+        }
+
+        // ── Flow 6: Photo to Video ───────────────────────────────────────────
+        case "photo-to-video": {
+          if (s.productImageUrls.length === 0) {
+            set({ isProductGenerating: false, productError: "Fotoğraf seçin" });
+            return null;
+          }
+          const [imageUrl] = await buildResolvedReferenceImageUrls([
+            s.productImageUrls[0],
+          ]);
+          if (!imageUrl) {
+            set({
+              isProductGenerating: false,
+              productError: "Görsel yüklenemedi",
+            });
+            return null;
+          }
+          const res = await productApi.generatePhotoToVideo({
+            imageUrl,
+            platform: s.videoPlatform,
+            duration: s.videoDuration,
+            modelTier: s.productModelTier,
+            customPrompt: s.productCustomPrompt || undefined,
+          });
+          set({
+            productJobIds: [res.jobId],
+            productLastCreditsCost: res.creditsCost,
+            productProgress: 15,
+          });
+          return [res.jobId];
+        }
+
+        default:
+          set({ isProductGenerating: false });
+          return null;
+      }
+    } catch (e) {
+      const insufficient =
+        isAxiosError(e) &&
+        (e.response?.status === 402 ||
+          /credit|kredi|402/i.test(
+            String(
+              (e.response?.data as { message?: string } | undefined)?.message ??
+                "",
+            ),
+          ));
+      set({
+        isProductGenerating: false,
+        productError: insufficient ? "Yetersiz kredi" : "Üretim başlatılamadı",
       });
       return null;
     }

@@ -4,84 +4,20 @@ import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { UploadDropzone } from "./upload-dropzone";
 import { CreditCostDisplay } from "./credit-cost-display";
 import { GenerateButton } from "./generate-button";
+import { StudioModelPicker } from "./studio-model-picker";
 import { useStudioStore } from "@/store/studio-store";
-import { formatGenerationErrorMessage } from "@/lib/generation-error-message";
 import { cn } from "@/lib/utils";
-import {
-  STUDIO_MODEL_OPTIONS,
-  getModelOption,
-  parseModelValue,
-  type StudioModelOption,
-} from "@/lib/fal-models";
-import type { AiGenerationMode, ModelTier } from "@/lib/api";
-
-type TFn = ReturnType<typeof useTranslations<"generation">>;
-
-const MODE_ORDER: AiGenerationMode[] = [
-  "text-to-image",
-  "image-to-image",
-  "image-to-video",
-];
-
-const GROUP_KEY: Record<AiGenerationMode, string> = {
-  "text-to-image": "modelGroupTti",
-  "image-to-image": "modelGroupIti",
-  "image-to-video": "modelGroupItv",
-};
-
-function ModelSelect({
-  mode,
-  tier,
-  onChange,
-  t,
-}: {
-  mode: AiGenerationMode;
-  tier: ModelTier;
-  onChange: (mode: AiGenerationMode, tier: ModelTier) => void;
-  t: TFn;
-}) {
-  const selected = getModelOption(mode, tier);
-  const groupedOptions = MODE_ORDER.map((m) => ({
-    groupKey: GROUP_KEY[m],
-    options: STUDIO_MODEL_OPTIONS.filter((o) => o.mode === m),
-  }));
-
-  return (
-    <div>
-      <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
-        {t("mode")}
-      </Label>
-      <select
-        value={selected.value}
-        onChange={(e) => {
-          const parsed = parseModelValue(e.target.value);
-          if (parsed) onChange(parsed.mode, parsed.tier);
-        }}
-        className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-sm text-white focus-visible:border-indigo-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
-      >
-        {groupedOptions.map(({ groupKey, options }) => (
-          <optgroup
-            key={groupKey}
-            label={t(groupKey as Parameters<TFn>[0])}
-            className="bg-[#111]"
-          >
-            {options.map((o: StudioModelOption) => (
-              <option key={o.value} value={o.value} className="bg-[#111]">
-                {t(o.labelKey as Parameters<TFn>[0])}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
-      <p className="mt-1.5 text-[10px] text-white/25">
-        {t("activeModel")}: {selected.modelId}
-      </p>
-    </div>
-  );
-}
+import type { AiPlatform, AiTone } from "@/lib/api";
 
 export function QuickModeForm() {
   const t = useTranslations("generation");
@@ -89,8 +25,10 @@ export function QuickModeForm() {
 
   const generationMode = useStudioStore((s) => s.generationMode);
   const setGenerationMode = useStudioStore((s) => s.setGenerationMode);
-  const modelTier = useStudioStore((s) => s.modelTier);
-  const setModelTier = useStudioStore((s) => s.setModelTier);
+  const studioPriceTier = useStudioStore((s) => s.studioPriceTier);
+  const setStudioPriceTier = useStudioStore((s) => s.setStudioPriceTier);
+  const falModelId = useStudioStore((s) => s.falModelId);
+  const setFalModelId = useStudioStore((s) => s.setFalModelId);
   const aspectRatio = useStudioStore((s) => s.aspectRatio);
   const setAspectRatio = useStudioStore((s) => s.setAspectRatio);
   const prompt = useStudioStore((s) => s.prompt);
@@ -110,9 +48,12 @@ export function QuickModeForm() {
   const setUiMode = useStudioStore((s) => s.setUiMode);
   const generationError = useStudioStore((s) => s.generationError);
 
+  const apiMissing =
+    (process.env.NEXT_PUBLIC_API_URL ?? "").trim().length === 0;
   const showMockHint =
-    (mainReferenceUrl?.startsWith("blob:") ?? false) ||
-    (styleReferenceUrl?.startsWith("blob:") ?? false);
+    apiMissing &&
+    ((mainReferenceUrl?.startsWith("blob:") ?? false) ||
+      (styleReferenceUrl?.startsWith("blob:") ?? false));
 
   return (
     <motion.div
@@ -122,6 +63,15 @@ export function QuickModeForm() {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25 }}
     >
+      <StudioModelPicker
+        mode={generationMode}
+        studioPriceTier={studioPriceTier}
+        falModelId={falModelId}
+        onModeChange={setGenerationMode}
+        onStudioPriceTierChange={setStudioPriceTier}
+        onFalModelIdChange={setFalModelId}
+      />
+
       <p className="text-xs leading-relaxed text-white/40">{ts("helperQuick")}</p>
 
       {showMockHint ? (
@@ -129,22 +79,6 @@ export function QuickModeForm() {
           {t("mockLocalImage")}
         </p>
       ) : null}
-
-      {generationError ? (
-        <p className="rounded-2xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-          {formatGenerationErrorMessage(generationError, t)}
-        </p>
-      ) : null}
-
-      <ModelSelect
-        mode={generationMode}
-        tier={modelTier}
-        onChange={(m, t2) => {
-          setGenerationMode(m);
-          setModelTier(t2);
-        }}
-        t={t}
-      />
 
       {generationMode !== "text-to-image" ? (
         <UploadDropzone
@@ -196,10 +130,10 @@ export function QuickModeForm() {
               type="button"
               onClick={() => setAspectRatio(id)}
               className={cn(
-                "rounded-xl border py-2.5 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
+                "rounded-xl border py-2.5 text-xs font-medium backdrop-blur-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
                 aspectRatio === id
-                  ? "border-indigo-500/50 bg-indigo-500/15 text-indigo-200"
-                  : "border-white/[0.08] bg-white/[0.02] text-white/45 hover:text-white/70"
+                  ? "border-indigo-500/50 bg-indigo-500/20 text-indigo-100"
+                  : "border-white/10 bg-white/5 text-white/45 hover:bg-white/8 hover:text-white/70"
               )}
             >
               {label}
@@ -220,10 +154,10 @@ export function QuickModeForm() {
                 type="button"
                 onClick={() => setDuration(d)}
                 className={cn(
-                  "flex-1 rounded-xl border py-2.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
+                  "flex-1 rounded-xl border py-2.5 text-sm font-medium backdrop-blur-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
                   duration === d
-                    ? "border-indigo-500/50 bg-indigo-500/15 text-indigo-200"
-                    : "border-white/[0.08] bg-white/[0.02] text-white/45"
+                    ? "border-indigo-500/50 bg-indigo-500/20 text-indigo-100"
+                    : "border-white/10 bg-white/5 text-white/45 hover:bg-white/8"
                 )}
               >
                 {d} {t("seconds")}
@@ -238,40 +172,53 @@ export function QuickModeForm() {
           <Label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
             {t("platform")}
           </Label>
-          <select
+          <Select
             value={platform}
-            onChange={(e) =>
-              setPlatform(e.target.value as "instagram" | "tiktok" | "general")
-            }
-            className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-sm text-white focus-visible:border-indigo-500/40 focus-visible:outline-none"
+            onValueChange={(v) => setPlatform(v as AiPlatform)}
           >
-            <option value="general" className="bg-[#111]">General</option>
-            <option value="instagram" className="bg-[#111]">Instagram</option>
-            <option value="tiktok" className="bg-[#111]">TikTok</option>
-          </select>
+            <SelectTrigger className="h-10 w-full text-sm text-white">
+              <SelectValue>
+                {platform === "general" ? t("platformGeneral")
+                  : platform === "instagram" ? t("platformInstagram")
+                  : platform === "tiktok" ? t("platformTiktok")
+                  : platform || t("platform")}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent align="start" sideOffset={6}>
+              <SelectItem value="general">{t("platformGeneral")}</SelectItem>
+              <SelectItem value="instagram">{t("platformInstagram")}</SelectItem>
+              <SelectItem value="tiktok">{t("platformTiktok")}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <Label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
             {t("tone")}
           </Label>
-          <select
+          <Select
             value={tone}
-            onChange={(e) =>
-              setTone(
-                e.target.value as
-                  | "professional"
-                  | "casual"
-                  | "humorous"
-                  | "inspirational"
-              )
-            }
-            className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-sm text-white focus-visible:border-indigo-500/40 focus-visible:outline-none"
+            onValueChange={(v) => setTone(v as AiTone)}
           >
-            <option value="professional" className="bg-[#111]">{t("toneProfessional")}</option>
-            <option value="casual" className="bg-[#111]">{t("toneCasual")}</option>
-            <option value="humorous" className="bg-[#111]">{t("toneHumorous")}</option>
-            <option value="inspirational" className="bg-[#111]">{t("toneInspirational")}</option>
-          </select>
+            <SelectTrigger className="h-10 w-full text-sm text-white">
+              <SelectValue>
+                {tone === "professional" ? t("toneProfessional")
+                  : tone === "casual" ? t("toneCasual")
+                  : tone === "humorous" ? t("toneHumorous")
+                  : tone === "inspirational" ? t("toneInspirational")
+                  : tone || t("tone")}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent align="start" sideOffset={6}>
+              <SelectItem value="professional">
+                {t("toneProfessional")}
+              </SelectItem>
+              <SelectItem value="casual">{t("toneCasual")}</SelectItem>
+              <SelectItem value="humorous">{t("toneHumorous")}</SelectItem>
+              <SelectItem value="inspirational">
+                {t("toneInspirational")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -288,7 +235,7 @@ export function QuickModeForm() {
           onChange={(e) => setPrompt(e.target.value)}
           rows={4}
           placeholder={t("promptPlaceholder")}
-          className="resize-none rounded-2xl border-white/[0.08] bg-white/[0.04] text-white placeholder:text-white/25 focus-visible:border-indigo-500/30 focus-visible:ring-indigo-500/20"
+          className="resize-none rounded-2xl border-white/10 bg-white/4 text-white placeholder:text-white/25 backdrop-blur-sm focus-visible:border-indigo-500/30 focus-visible:ring-indigo-500/20"
         />
       </div>
 
@@ -304,7 +251,7 @@ export function QuickModeForm() {
       <button
         type="button"
         onClick={() => setUiMode("customize")}
-        className="w-full rounded-2xl border border-white/[0.08] bg-transparent py-3 text-sm font-medium text-white/55 transition-colors hover:border-indigo-500/30 hover:bg-indigo-500/[0.06] hover:text-indigo-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+        className="w-full rounded-2xl border border-white/10 bg-white/4 py-3 text-sm font-medium text-white/55 shadow-none backdrop-blur-sm transition-colors hover:border-indigo-500/30 hover:bg-indigo-500/10 hover:text-indigo-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
       >
         <span className="block text-[10px] font-normal uppercase tracking-wider text-white/30">
           {ts("tryCustomize")}

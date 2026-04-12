@@ -24,7 +24,7 @@ export function SectionAccordion({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-white/[0.07] bg-white/[0.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+        "rounded-2xl border border-white/10 bg-white/[0.05] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm",
         className
       )}
     >

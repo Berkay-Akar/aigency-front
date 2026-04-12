@@ -1,93 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Zap, CreditCard, Check, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { billingApi } from "@/lib/api";
 import { buildIyzicoCheckoutPayload } from "@/lib/billing-checkout";
+import { CREDIT_PACKAGES } from "@/lib/billing-packages";
 import { useAuthStore } from "@/store/auth-store";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { IyzicoCheckoutModal } from "@/components/features/billing/iyzico-checkout-modal";
 import { cn } from "@/lib/utils";
-
-const PACKAGES = [
-  {
-    id: "starter_200",
-    credits: 200,
-    price: "$9",
-    priceNum: 9,
-    label: "Starter",
-    desc: "Perfect for trying things out",
-  },
-  {
-    id: "growth_1000",
-    credits: 1000,
-    price: "$39",
-    priceNum: 39,
-    label: "Growth",
-    desc: "Best value for regular creators",
-    popular: true,
-  },
-  {
-    id: "pro_3000",
-    credits: 3000,
-    price: "$99",
-    priceNum: 99,
-    label: "Pro",
-    desc: "For agencies & power users",
-  },
-];
-
-function IyzicoCheckoutModal({
-  open,
-  html,
-  onClose,
-  onSuccess,
-}: {
-  open: boolean;
-  html: string;
-  onClose: () => void;
-  onSuccess: () => void;
-}) {
-  useEffect(() => {
-    if (!open || !html) return;
-
-    // Listen for iyzico payment success message
-    const handleMessage = (event: MessageEvent) => {
-      if (
-        event.data?.type === "payment_success" ||
-        event.data === "payment_success"
-      ) {
-        onSuccess();
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [open, html, onSuccess]);
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="bg-[#111] border-white/[0.08] rounded-3xl max-w-lg p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-5 pb-0">
-          <DialogTitle className="text-base font-semibold text-white flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-indigo-400" />
-            Complete payment
-          </DialogTitle>
-        </DialogHeader>
-        <div
-          className="p-4"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 export default function BillingPage() {
   const queryClient = useQueryClient();
@@ -102,7 +24,7 @@ export default function BillingPage() {
 
   const paymentMutation = useMutation({
     mutationFn: (packageId: string) => {
-      const pkg = PACKAGES.find((p) => p.id === packageId);
+      const pkg = CREDIT_PACKAGES.find((p) => p.id === packageId);
       if (!pkg) throw new Error("Unknown package");
       const appOrigin =
         typeof window !== "undefined" ? window.location.origin : "";
@@ -210,14 +132,14 @@ export default function BillingPage() {
           Top up credits
         </h2>
         <div className="grid sm:grid-cols-3 gap-4">
-          {PACKAGES.map((pkg) => (
+          {CREDIT_PACKAGES.map((pkg) => (
             <div
               key={pkg.id}
               className={cn(
                 "relative p-6 rounded-3xl border transition-all",
                 pkg.popular
                   ? "border-indigo-500/40 bg-indigo-600/10"
-                  : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]"
+                  : "border-white/10 bg-white/[0.04] backdrop-blur-sm hover:border-white/20"
               )}
             >
               {pkg.popular && (
@@ -270,7 +192,7 @@ export default function BillingPage() {
       </div>
 
       {/* What credits cost */}
-      <div className="p-5 rounded-3xl bg-white/[0.02] border border-white/[0.06]">
+      <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md">
         <h3 className="text-sm font-semibold text-white mb-4">Credit costs</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[

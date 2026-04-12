@@ -12,6 +12,7 @@ interface UploadDropzoneProps {
   onFile: (file: File) => void;
   onClear: () => void;
   className?: string;
+  compact?: boolean;
 }
 
 export function UploadDropzone({
@@ -21,6 +22,7 @@ export function UploadDropzone({
   onFile,
   onClear,
   className,
+  compact = false,
 }: UploadDropzoneProps) {
   const t = useTranslations("generation");
   const [dragOver, setDragOver] = useState(false);
@@ -30,7 +32,7 @@ export function UploadDropzone({
       if (!file.type.startsWith("image/")) return;
       onFile(file);
     },
-    [onFile]
+    [onFile],
   );
 
   const onDrop = useCallback(
@@ -40,7 +42,7 @@ export function UploadDropzone({
       const file = e.dataTransfer.files[0];
       if (file) handleFile(file);
     },
-    [handleFile]
+    [handleFile],
   );
 
   const onInput = useCallback(
@@ -49,11 +51,78 @@ export function UploadDropzone({
       if (file) handleFile(file);
       e.target.value = "";
     },
-    [handleFile]
+    [handleFile],
   );
 
   const inputId = `upload-${label.replace(/\s+/g, "-").toLowerCase()}`;
 
+  // ── Compact tile mode ─────────────────────────────────────────────
+  if (compact) {
+    return (
+      <div className={cn("flex flex-col gap-1.5", className)}>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+          {label}
+          {optional ? (
+            <span className="ml-1 font-normal normal-case text-white/25">
+              ({t("optional")})
+            </span>
+          ) : null}
+        </span>
+        {previewUrl ? (
+          <div className="group relative aspect-3/4 w-full overflow-hidden rounded-xl border border-white/10 bg-white/5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition-opacity group-hover:opacity-100">
+              <button
+                type="button"
+                onClick={onClear}
+                className="rounded-lg border border-white/20 bg-white/10 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <label
+            htmlFor={inputId}
+            className={cn(
+              "relative flex aspect-3/4 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all duration-200",
+              dragOver
+                ? "border-indigo-500/50 bg-indigo-500/10"
+                : "border-white/10 bg-white/3 hover:border-white/20 hover:bg-white/6",
+            )}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={onDrop}
+          >
+            <input
+              id={inputId}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={onInput}
+            />
+            <Upload
+              className={cn(
+                "h-5 w-5",
+                dragOver ? "text-indigo-400" : "text-white/30",
+              )}
+              aria-hidden
+            />
+          </label>
+        )}
+      </div>
+    );
+  }
+
+  // ── Normal (full) mode ────────────────────────────────────────────
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex items-center justify-between gap-2">
@@ -71,12 +140,9 @@ export function UploadDropzone({
       </div>
 
       {previewUrl ? (
-        <div className="relative aspect-[4/3] max-h-40 w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]">
-          <img
-            src={previewUrl}
-            alt=""
-            className="h-full w-full object-cover"
-          />
+        <div className="relative aspect-4/3 max-h-40 w-full overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={previewUrl} alt="" className="h-full w-full object-cover" />
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity hover:opacity-100">
             <button
               type="button"
@@ -96,10 +162,10 @@ export function UploadDropzone({
         <label
           htmlFor={inputId}
           className={cn(
-            "relative flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 transition-all duration-200",
+            "relative flex min-h-30 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 transition-all duration-200",
             dragOver
-              ? "border-indigo-500/50 bg-indigo-500/[0.07]"
-              : "border-white/[0.1] bg-white/[0.02] hover:border-white/[0.18] hover:bg-white/[0.04]"
+              ? "border-indigo-500/50 bg-indigo-500/15 backdrop-blur-sm"
+              : "border-white/10 bg-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-sm hover:border-white/20 hover:bg-white/8",
           )}
           onDragOver={(e) => {
             e.preventDefault();
@@ -118,13 +184,13 @@ export function UploadDropzone({
           <div
             className={cn(
               "mb-3 flex h-11 w-11 items-center justify-center rounded-2xl",
-              dragOver ? "bg-indigo-500/20" : "bg-white/[0.06]"
+              dragOver ? "bg-indigo-500/20" : "bg-white/6",
             )}
           >
             <Upload
               className={cn(
                 "h-5 w-5",
-                dragOver ? "text-indigo-400" : "text-white/35"
+                dragOver ? "text-indigo-400" : "text-white/35",
               )}
               aria-hidden
             />
@@ -132,7 +198,9 @@ export function UploadDropzone({
           <p className="text-center text-sm font-medium text-white/65">
             {t("dropOrClick")}
           </p>
-          <p className="mt-1 text-center text-[11px] text-white/30">{t("formats")}</p>
+          <p className="mt-1 text-center text-[11px] text-white/30">
+            {t("formats")}
+          </p>
         </label>
       )}
     </div>

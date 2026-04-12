@@ -25,7 +25,7 @@ export function Hero() {
 
       <div className="relative z-10 max-w-5xl mx-auto text-center">
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm font-medium mb-8 animate-fade-in-up">
+        <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-4 py-2 text-sm font-medium text-indigo-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md animate-fade-in-up">
           <Sparkles className="w-3.5 h-3.5" />
           The future of content creation is here
         </div>
@@ -55,7 +55,7 @@ export function Hero() {
             <ArrowRight className="ml-2 w-4 h-4" />
           </Link>
           <button className="flex items-center gap-3 text-white/50 hover:text-white/80 transition-colors group text-base">
-            <div className="w-11 h-11 rounded-full bg-white/[0.07] border border-white/10 flex items-center justify-center group-hover:bg-white/[0.1] transition-colors">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.08] backdrop-blur-md transition-colors group-hover:bg-white/[0.12]">
               <Play className="w-4 h-4 fill-current ml-0.5" />
             </div>
             Watch demo

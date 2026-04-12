@@ -28,7 +28,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error: AxiosError) => Promise.reject(error)
+  (error: AxiosError) => Promise.reject(error),
 );
 
 // Global 401 handler — clear auth and redirect to /login
@@ -42,7 +42,7 @@ api.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
@@ -129,8 +129,7 @@ export const authApi = {
    * Backend returns `{ url }` for Google OAuth start (optional pattern).
    * If you only use full-page redirect, use `getGoogleOAuthStartUrl()` instead.
    */
-  getGoogleOAuthUrl: () =>
-    api.get<{ url: string }>("/auth/google/url"),
+  getGoogleOAuthUrl: () => api.get<{ url: string }>("/auth/google/url"),
 };
 
 /**
@@ -181,8 +180,7 @@ export interface Post {
 }
 
 function normalizeBillingBalancePayload(b: unknown): BillingBalance {
-  const x =
-    b && typeof b === "object" ? (b as Record<string, unknown>) : {};
+  const x = b && typeof b === "object" ? (b as Record<string, unknown>) : {};
   const creditsRaw = x.credits;
   const credits =
     typeof creditsRaw === "number"
@@ -316,15 +314,13 @@ export type OutputFormat = "png" | "jpeg" | "webp";
 
 export type AiPlatform = "instagram" | "tiktok" | "general";
 
-export type AiTone =
-  | "professional"
-  | "casual"
-  | "humorous"
-  | "inspirational";
+export type AiTone = "professional" | "casual" | "humorous" | "inspirational";
 
 export interface GeneratePayload {
   mode: AiGenerationMode;
   modelTier?: ModelTier;
+  /** Tam fal.ai model yolu; backend destekliyorsa bu alan önceliklidir. */
+  modelId?: string;
   prompt: string;
   enhancePrompt?: boolean;
   aspectRatio?: AiAspectRatio;
@@ -373,13 +369,182 @@ export const aiApi = {
   },
   getPresetPrompts: async () => {
     const res = await api.get<unknown>("/ai/preset-prompts");
-    return unwrapApiData<PresetPromptsResponse>(res.data) as PresetPromptsResponse;
+    return unwrapApiData<PresetPromptsResponse>(
+      res.data,
+    ) as PresetPromptsResponse;
   },
   enhancePrompt: async (prompt: string, mode: AiGenerationMode) => {
     const res = await api.post<unknown>("/ai/enhance-prompt", { prompt, mode });
-    return unwrapApiData<{ enhancedPrompt: string }>(
-      res.data
-    ) as { enhancedPrompt: string };
+    return unwrapApiData<{ enhancedPrompt: string }>(res.data) as {
+      enhancedPrompt: string;
+    };
+  },
+};
+
+// ─── Product AI Generation ────────────────────────────────────────────────────
+
+export interface ModelPhotoOptions {
+  genders: string[];
+  ethnicities: string[];
+  ageRanges: string[];
+  skinColors: string[];
+  faceTypes: string[];
+  eyeColors: string[];
+  expressions: string[];
+  hairColors: string[];
+  hairstyles: string[];
+  bodySizes: string[];
+  shotTypes: string[];
+  resolutions: string[];
+  resolutionCredits: Record<string, number>;
+}
+
+export interface ModelDetails {
+  gender?: string;
+  ethnicity?: string;
+  age?: string;
+  skinColor?: string;
+  faceType?: string;
+  eyeColor?: string;
+  expression?: string;
+}
+
+export interface ModelCustomization {
+  bodySize?: string;
+  height?: number;
+  hairColor?: string;
+  hairstyle?: string;
+  shotType?: string;
+}
+
+export type ProductStyleMode = "with-model" | "product-only";
+export type ProductResolution = "1K" | "2K";
+export type GhostMannequinQuality = "standard" | "premium";
+export type VideoPlatform = "instagram" | "tiktok" | "general";
+
+export interface ModelPhotoPayload {
+  productImageUrls: string[];
+  styleMode: ProductStyleMode;
+  modelDetails?: ModelDetails;
+  customization?: ModelCustomization;
+  shotType?: string;
+  resolution?: ProductResolution;
+  modelTier?: ModelTier;
+  outputFormat?: OutputFormat;
+  customPrompt?: string;
+}
+
+export interface ProductAnglesPayload {
+  productImageUrl: string;
+  count: 1 | 2 | 3;
+  resolution?: ProductResolution;
+  modelTier?: ModelTier;
+  outputFormat?: OutputFormat;
+  customPrompt?: string;
+}
+
+export interface ProductReferencePayload {
+  productImageUrl: string;
+  referenceImageUrl: string;
+  styleMode: "minimal" | "bold";
+  resolution?: ProductResolution;
+  modelTier?: ModelTier;
+  outputFormat?: OutputFormat;
+  customPrompt?: string;
+}
+
+export interface ProductSwapPayload {
+  productImageUrl: string;
+  sceneImageUrl: string;
+  resolution?: ProductResolution;
+  modelTier?: ModelTier;
+  outputFormat?: OutputFormat;
+  customPrompt?: string;
+}
+
+export interface GhostMannequinPayload {
+  productImageUrl: string;
+  quality?: GhostMannequinQuality;
+  backgroundColor?: string;
+  outputFormat?: OutputFormat;
+  customPrompt?: string;
+}
+
+export interface PhotoToVideoPayload {
+  imageUrl: string;
+  platform?: VideoPlatform;
+  duration?: 5 | 10;
+  modelTier?: ModelTier;
+  customPrompt?: string;
+}
+
+export interface SingleProductJobResponse {
+  jobId: string;
+  status: "queued";
+  creditsCost: number;
+  modelId: string;
+}
+
+export interface MultiProductJobResponse {
+  jobIds: string[];
+  status: "queued";
+  totalCredits: number;
+  modelId: string;
+}
+
+export const productApi = {
+  getModelPhotoOptions: async (): Promise<ModelPhotoOptions> => {
+    const res = await api.get<unknown>("/ai/model-photo/options");
+    const inner = unwrapApiData<{ options: ModelPhotoOptions }>(res.data);
+    return inner.options;
+  },
+  generateModelPhoto: async (
+    data: ModelPhotoPayload,
+  ): Promise<SingleProductJobResponse> => {
+    const res = await api.post<unknown>("/ai/model-photo", data);
+    return unwrapApiData<SingleProductJobResponse>(
+      res.data,
+    ) as SingleProductJobResponse;
+  },
+  generateProductAngles: async (
+    data: ProductAnglesPayload,
+  ): Promise<MultiProductJobResponse> => {
+    const res = await api.post<unknown>("/ai/product-angles", data);
+    return unwrapApiData<MultiProductJobResponse>(
+      res.data,
+    ) as MultiProductJobResponse;
+  },
+  generateProductReference: async (
+    data: ProductReferencePayload,
+  ): Promise<SingleProductJobResponse> => {
+    const res = await api.post<unknown>("/ai/product-reference", data);
+    return unwrapApiData<SingleProductJobResponse>(
+      res.data,
+    ) as SingleProductJobResponse;
+  },
+  generateProductSwap: async (
+    data: ProductSwapPayload,
+  ): Promise<SingleProductJobResponse> => {
+    const res = await api.post<unknown>("/ai/product-swap", data);
+    return unwrapApiData<SingleProductJobResponse>(
+      res.data,
+    ) as SingleProductJobResponse;
+  },
+  generateGhostMannequin: async (
+    data: GhostMannequinPayload,
+  ): Promise<SingleProductJobResponse> => {
+    const res = await api.post<unknown>("/ai/ghost-mannequin", data);
+    return unwrapApiData<SingleProductJobResponse>(
+      res.data,
+    ) as SingleProductJobResponse;
+  },
+  generatePhotoToVideo: async (
+    data: PhotoToVideoPayload,
+  ): Promise<SingleProductJobResponse> => {
+    const res = await api.post<unknown>("/ai/photo-to-video", data);
+    return unwrapApiData<SingleProductJobResponse>(
+      res.data,
+    ) as SingleProductJobResponse;
   },
 };
 
@@ -407,7 +572,7 @@ export const postsApi = {
   },
   calendar: async (from: string, to: string) => {
     const res = await api.get<unknown>(
-      `/posts/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+      `/posts/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     );
     return normalizePostsPayload(res.data);
   },
@@ -431,7 +596,8 @@ function normalizeConnectionsPayload(raw: unknown): SocialConnection[] {
   if (Array.isArray(once)) return once;
   if (once && typeof once === "object") {
     const o = once as Record<string, unknown>;
-    if (Array.isArray(o.connections)) return o.connections as SocialConnection[];
+    if (Array.isArray(o.connections))
+      return o.connections as SocialConnection[];
   }
   return [];
 }
@@ -472,9 +638,7 @@ export interface AssetsResponse {
 
 export const assetsApi = {
   list: async (page = 1, limit = 20) => {
-    const res = await api.get<unknown>(
-      `/assets?page=${page}&limit=${limit}`
-    );
+    const res = await api.get<unknown>(`/assets?page=${page}&limit=${limit}`);
     const data = unwrapApiData<AssetsResponse>(res.data);
     return data as AssetsResponse;
   },

@@ -81,7 +81,7 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-md">
       {/* Card */}
-      <div className="p-8 rounded-3xl bg-white/[0.03] border border-white/[0.07] shadow-2xl backdrop-blur-sm">
+      <div className="glass-panel rounded-3xl p-8 shadow-2xl">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-white mb-2">Welcome back</h1>
           <p className="text-sm text-white/40">

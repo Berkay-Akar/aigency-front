@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { aiApi } from "@/lib/api";
 import { useStudioStore } from "@/store/studio-store";
+import type { GenerationResult } from "@/store/studio-store";
 
 function jobLabel(mode: string) {
   if (mode === "image-to-video") return "Video";
@@ -44,7 +45,11 @@ export function useJobPolling() {
       setJobStatus("processing", job.progress ?? 55);
     }
 
-    if (job.status === "completed" && job.result && toastedRef.current !== job.id) {
+    if (
+      job.status === "completed" &&
+      job.result &&
+      toastedRef.current !== job.id
+    ) {
       toastedRef.current = job.id;
       setResult(job.result, jobLabel(generationMode));
       toast.success(t("jobComplete"));
@@ -56,12 +61,75 @@ export function useJobPolling() {
       setGenerationError(msg);
       toast.error(msg);
     }
-  }, [
-    job,
-    generationMode,
-    setJobStatus,
-    setResult,
-    setGenerationError,
-    t,
-  ]);
+  }, [job, generationMode, setJobStatus, setResult, setGenerationError, t]);
+}
+
+/**
+ * Polls all product job IDs (supports 1–3 parallel jobs for product-angles).
+ * Updates productResults as each job finishes; sets isProductGenerating=false when all done.
+ */
+export function useProductJobPolling() {
+  const productJobIds = useStudioStore((s) => s.productJobIds);
+  const isProductGenerating = useStudioStore((s) => s.isProductGenerating);
+  const setProductResults = useStudioStore((s) => s.setProductResults);
+  const setProductError = useStudioStore((s) => s.setProductError);
+  const setProductProgress = useStudioStore((s) => s.setProductProgress);
+  const toastedRef = useRef<string | null>(null);
+
+  const enabled = isProductGenerating && productJobIds.length > 0;
+
+  const jobQueries = useQueries({
+    queries: productJobIds.map((jobId) => ({
+      queryKey: ["product-job", jobId],
+      queryFn: () => aiApi.getJob(jobId),
+      enabled,
+      refetchInterval: enabled ? 2500 : (false as const),
+    })),
+  });
+
+  useEffect(() => {
+    if (!enabled || jobQueries.length === 0) return;
+
+    const anyFailed = jobQueries.some((q) => q.data?.status === "failed");
+    if (anyFailed) {
+      const failedQ = jobQueries.find((q) => q.data?.status === "failed");
+      const msg =
+        failedQ?.data?.failedReason ??
+        failedQ?.data?.error ??
+        "Üretim başarısız";
+      if (toastedRef.current !== msg) {
+        toastedRef.current = msg;
+        setProductError(msg);
+        toast.error(msg);
+      }
+      return;
+    }
+
+    // Update progress from the fastest-progressing job
+    const progresses = jobQueries
+      .map((q) => q.data?.progress ?? 0)
+      .filter((p) => p > 0);
+    if (progresses.length > 0) {
+      const avg = Math.round(
+        progresses.reduce((a, b) => a + b, 0) / progresses.length,
+      );
+      if (avg > 0) setProductProgress(avg);
+    }
+
+    const allCompleted = jobQueries.every(
+      (q) => q.data?.status === "completed" && q.data.result,
+    );
+    if (allCompleted) {
+      const successKey = productJobIds.join(",");
+      if (toastedRef.current === successKey) return;
+      toastedRef.current = successKey;
+
+      const results = jobQueries
+        .map((q) => q.data?.result)
+        .filter((r): r is GenerationResult => !!r);
+      setProductResults(results);
+      toast.success("Üretim tamamlandı!");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobQueries.map((q) => q.data?.status).join(","), enabled]);
 }

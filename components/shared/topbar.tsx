@@ -31,7 +31,7 @@ export function Topbar() {
     : "?";
 
   return (
-    <header className="h-[60px] flex items-center justify-between px-4 md:px-6 border-b border-white/[0.06] bg-[#080808]/80 backdrop-blur-sm flex-shrink-0">
+    <header className="flex h-15 shrink-0 items-center justify-between border-b border-white/10 bg-[rgb(8_8_8/0.72)] px-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl md:px-6">
       {/* Left: workspace name */}
       <div className="flex items-center gap-2 text-sm font-medium text-white/80">
         <div className="w-6 h-6 rounded-lg bg-indigo-500/20 flex items-center justify-center">
@@ -49,14 +49,14 @@ export function Topbar() {
         <button
           type="button"
           aria-label={t("search")}
-          className="w-8 h-8 rounded-xl hidden sm:flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-all"
+          className="w-8 h-8 rounded-xl hidden sm:flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/5 transition-all"
         >
           <Search className="w-4 h-4" aria-hidden />
         </button>
         <button
           type="button"
           aria-label={t("notifications")}
-          className="w-8 h-8 rounded-xl flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-all relative"
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/5 transition-all relative"
         >
           <Bell className="w-4 h-4" />
           <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500" />
@@ -74,20 +74,20 @@ export function Topbar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="bg-[#111] border-white/[0.08] rounded-xl shadow-2xl w-48"
+            className="bg-[#111] border-white/8 rounded-xl shadow-2xl w-48"
           >
             <div className="px-3 py-2.5">
               <p className="text-sm font-medium text-white">{user?.name ?? t("user")}</p>
               <p className="text-xs text-white/40">{user?.email ?? ""}</p>
             </div>
-            <DropdownMenuSeparator className="bg-white/[0.06]" />
+            <DropdownMenuSeparator className="bg-white/6" />
             <DropdownMenuItem className="text-sm text-white/60 hover:text-white rounded-lg cursor-pointer">
               <Link href="/settings" className="w-full">{t("profile")}</Link>
             </DropdownMenuItem>
             <DropdownMenuItem className="text-sm text-white/60 hover:text-white rounded-lg cursor-pointer">
               <Link href="/billing" className="w-full">{t("billing")}</Link>
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-white/[0.06]" />
+            <DropdownMenuSeparator className="bg-white/6" />
             <DropdownMenuItem
               onClick={logout}
               className="text-sm text-red-400 hover:text-red-300 rounded-lg cursor-pointer"

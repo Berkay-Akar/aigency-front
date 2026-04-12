@@ -27,7 +27,7 @@ export function MobileControlDrawer({
         side="left"
         showCloseButton
         className={cn(
-          "w-full gap-0 border-white/[0.08] bg-[#070707]/98 p-0 sm:max-w-md",
+          "w-full gap-0 border-white/10 bg-[rgb(8_8_10/0.94)] p-0 shadow-2xl backdrop-blur-xl sm:max-w-md",
           "data-[side=left]:w-full"
         )}
       >

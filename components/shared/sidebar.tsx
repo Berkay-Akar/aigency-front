@@ -49,7 +49,7 @@ export function Sidebar({ mobile }: SidebarProps) {
 
   if (mobile) {
     return (
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0c0c0c]/95 backdrop-blur-md border-t border-white/[0.06] flex items-center justify-around px-2 py-2">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-white/10 bg-[rgb(12_12_14/0.92)] px-2 py-2 shadow-[0_-8px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl">
         {MOBILE_NAV.map(({ href, icon: Icon, label }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
@@ -71,7 +71,7 @@ export function Sidebar({ mobile }: SidebarProps) {
   }
 
   return (
-    <aside className="w-[220px] flex-shrink-0 flex flex-col h-full bg-[#0c0c0c] border-r border-white/[0.06]">
+    <aside className="flex h-full w-[220px] flex-shrink-0 flex-col border-r border-white/10 bg-[rgb(12_12_14/0.88)] backdrop-blur-xl">
       {/* Logo */}
       <div className="h-[60px] flex items-center px-5 border-b border-white/[0.06]">
         <Logo />

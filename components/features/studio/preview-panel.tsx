@@ -12,13 +12,11 @@ import {
   Layers,
   CalendarPlus,
   ImageIcon,
-  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { useStudioStore } from "@/store/studio-store";
 import { ScheduleModal } from "./schedule-modal";
-import { formatGenerationErrorMessage } from "@/lib/generation-error-message";
 import { cn } from "@/lib/utils";
 
 export function PreviewPanel({ className }: { className?: string }) {
@@ -29,14 +27,11 @@ export function PreviewPanel({ className }: { className?: string }) {
   const result = useStudioStore((s) => s.result);
   const isGenerating = useStudioStore((s) => s.isGenerating);
   const progress = useStudioStore((s) => s.progress);
-  const generationError = useStudioStore((s) => s.generationError);
   const prompt = useStudioStore((s) => s.prompt);
   const composedPreview = useStudioStore((s) => s.buildComposedPrompt());
   const startGeneration = useStudioStore((s) => s.startGeneration);
   const enhancePromptWithApi = useStudioStore((s) => s.enhancePromptWithApi);
-  const resetGenerationUi = useStudioStore((s) => s.resetGenerationUi);
-
-  const showEmpty = !isGenerating && !result && !generationError;
+  const showEmpty = !isGenerating && !result;
 
   async function handleCopyPrompt() {
     const text = useStudioStore.getState().buildComposedPrompt();
@@ -68,7 +63,7 @@ export function PreviewPanel({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-1 flex-col rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm",
+        "flex min-h-0 flex-1 flex-col rounded-3xl border border-white/10 bg-[rgb(10_10_12/0.65)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_40px_rgba(0,0,0,0.25)] backdrop-blur-xl",
         className
       )}
     >
@@ -121,34 +116,7 @@ export function PreviewPanel({ className }: { className?: string }) {
             </motion.div>
           ) : null}
 
-          {generationError && !isGenerating ? (
-            <motion.div
-              key="error"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center"
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/25 bg-red-500/10">
-                <AlertCircle className="h-7 w-7 text-red-400" aria-hidden />
-              </div>
-              <h3 className="text-lg font-semibold text-white">{t("errorTitle")}</h3>
-              <p className="max-w-md text-sm text-white/45">
-                {formatGenerationErrorMessage(generationError, tg)}
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  resetGenerationUi();
-                }}
-                className="rounded-2xl border border-white/[0.12] px-5 py-2.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
-              >
-                {tg("retry")}
-              </button>
-            </motion.div>
-          ) : null}
-
-          {result && !isGenerating && !generationError ? (
+          {result && !isGenerating ? (
             <motion.div
               key="result"
               initial={{ opacity: 0, scale: 0.97 }}

@@ -109,7 +109,7 @@ export default function BrandPage() {
       <div className="grid md:grid-cols-2 gap-6">
         {/* Left column */}
         <div className="space-y-6">
-          <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/[0.06]">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md">
             <h3 className="text-sm font-semibold text-white mb-1">
               Brand Identity
             </h3>

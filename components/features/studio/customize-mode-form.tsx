@@ -10,81 +10,9 @@ import { UploadDropzone } from "./upload-dropzone";
 import { SectionAccordion } from "./section-accordion";
 import { CreditCostDisplay } from "./credit-cost-display";
 import { GenerateButton } from "./generate-button";
+import { StudioModelPicker } from "./studio-model-picker";
 import { useStudioStore } from "@/store/studio-store";
-import { formatGenerationErrorMessage } from "@/lib/generation-error-message";
 import { cn } from "@/lib/utils";
-import {
-  STUDIO_MODEL_OPTIONS,
-  getModelOption,
-  parseModelValue,
-  type StudioModelOption,
-} from "@/lib/fal-models";
-import type { AiGenerationMode, ModelTier } from "@/lib/api";
-
-type TFn = ReturnType<typeof useTranslations<"generation">>;
-
-const MODE_ORDER: AiGenerationMode[] = [
-  "text-to-image",
-  "image-to-image",
-  "image-to-video",
-];
-
-const GROUP_KEY: Record<AiGenerationMode, string> = {
-  "text-to-image": "modelGroupTti",
-  "image-to-image": "modelGroupIti",
-  "image-to-video": "modelGroupItv",
-};
-
-function ModelSelect({
-  mode,
-  tier,
-  onChange,
-  t,
-}: {
-  mode: AiGenerationMode;
-  tier: ModelTier;
-  onChange: (mode: AiGenerationMode, tier: ModelTier) => void;
-  t: TFn;
-}) {
-  const selected = getModelOption(mode, tier);
-  const groupedOptions = MODE_ORDER.map((m) => ({
-    groupKey: GROUP_KEY[m],
-    options: STUDIO_MODEL_OPTIONS.filter((o) => o.mode === m),
-  }));
-
-  return (
-    <div>
-      <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
-        {t("mode")}
-      </Label>
-      <select
-        value={selected.value}
-        onChange={(e) => {
-          const parsed = parseModelValue(e.target.value);
-          if (parsed) onChange(parsed.mode, parsed.tier);
-        }}
-        className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-sm text-white focus-visible:border-indigo-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
-      >
-        {groupedOptions.map(({ groupKey, options }) => (
-          <optgroup
-            key={groupKey}
-            label={t(groupKey as Parameters<TFn>[0])}
-            className="bg-[#111]"
-          >
-            {options.map((o: StudioModelOption) => (
-              <option key={o.value} value={o.value} className="bg-[#111]">
-                {t(o.labelKey as Parameters<TFn>[0])}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
-      <p className="mt-1.5 text-[10px] text-white/25">
-        {t("activeModel")}: {selected.modelId}
-      </p>
-    </div>
-  );
-}
 
 function FieldSelect({
   id,
@@ -92,12 +20,14 @@ function FieldSelect({
   value,
   onChange,
   options,
+  labelMap = {},
 }: {
   id: string;
   label: string;
   value: string;
   onChange: (v: string) => void;
   options: string[];
+  labelMap?: Record<string, string>;
 }) {
   return (
     <div className="space-y-1.5">
@@ -111,12 +41,12 @@ function FieldSelect({
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-sm text-white focus-visible:border-indigo-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
+        className="glass-trigger h-10 w-full rounded-xl px-3 text-sm text-white focus-visible:border-indigo-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
       >
         <option value="">—</option>
         {options.map((o) => (
           <option key={o} value={o} className="bg-[#111]">
-            {o}
+            {labelMap[o] ?? o}
           </option>
         ))}
       </select>
@@ -131,14 +61,88 @@ export function CustomizeModeForm() {
   const s = useStudioStore();
   const isGenerating = useStudioStore((st) => st.isGenerating);
   const startGeneration = useStudioStore((st) => st.startGeneration);
-  const generationError = useStudioStore((st) => st.generationError);
   const enhancePrompt = useStudioStore((st) => st.enhancePrompt);
   const setEnhancePrompt = useStudioStore((st) => st.setEnhancePrompt);
 
+  const subjectLabelMap: Record<string, string> = {
+    // gender
+    "Woman": t("optGenderWoman"),
+    "Man": t("optGenderMan"),
+    "Non-binary": t("optGenderNonBinary"),
+    "Any": t("optGenderAny"),
+    // age
+    "young adult": t("optAgeYoung"),
+    "adult": t("optAgeAdult"),
+    "mid-life": t("optAgeMidLife"),
+    "mature": t("optAgeMature"),
+    "senior": t("optAgeSenior"),
+    // ethnicity
+    "Neutral": t("optEthNeutral"),
+    "East Asian": t("optEthEastAsian"),
+    "South Asian": t("optEthSouthAsian"),
+    "Black": t("optEthBlack"),
+    "Latine": t("optEthLatine"),
+    "Middle Eastern": t("optEthMiddleEastern"),
+    "White": t("optEthWhite"),
+    "Mixed": t("optEthMixed"),
+    // skin tone
+    "Fair": t("optSkinFair"),
+    "Light": t("optSkinLight"),
+    "Medium": t("optSkinMedium"),
+    "Tan": t("optSkinTan"),
+    "Deep": t("optSkinDeep"),
+    "Rich deep": t("optSkinRichDeep"),
+    // hair color
+    "Black_hair": t("optHairBlack"),
+    "Brown": t("optHairBrown"),
+    "Blonde": t("optHairBlonde"),
+    "Auburn": t("optHairAuburn"),
+    "Red": t("optHairRed"),
+    "Gray": t("optHairGray"),
+    "Fashion color": t("optHairFashion"),
+    // hair style
+    "Sleek": t("optHairSleek"),
+    "Wavy": t("optHairWavy"),
+    "Curly": t("optHairCurly"),
+    "Short crop": t("optHairShortCrop"),
+    "Long layers": t("optHairLongLayers"),
+    "Updo": t("optHairUpdo"),
+    "Braided": t("optHairBraided"),
+    // expression
+    "Soft smile": t("optExprSoftSmile"),
+    "Confident": t("optExprConfident"),
+    "Serious": t("optExprSerious"),
+    "Playful": t("optExprPlayful"),
+    "Editorial": t("optExprEditorial"),
+    // body type
+    "Athletic": t("optBodyAthletic"),
+    "Average": t("optBodyAverage"),
+    "Curvy": t("optBodyCurvy"),
+    "Slim": t("optBodySlim"),
+    "Plus": t("optBodyPlus"),
+    "Runway": t("optBodyRunway"),
+    // pose
+    "Standing": t("optPoseStanding"),
+    "Seated": t("optPoseSeated"),
+    "Walking": t("optPoseWalking"),
+    "Hero pose": t("optPoseHero"),
+    "Casual lean": t("optPoseCasualLean"),
+    "Hands visible": t("optPoseHandsVisible"),
+    // camera framing
+    "Full body": t("optFrameFull"),
+    "Three-quarter": t("optFrameThreeQ"),
+    "Waist-up": t("optFrameWaistUp"),
+    "Close-up": t("optFrameCloseUp"),
+    "Macro detail": t("optFrameMacro"),
+  };
+
+  const apiMissing =
+    (process.env.NEXT_PUBLIC_API_URL ?? "").trim().length === 0;
   const showMockHint =
-    (s.mainReferenceUrl?.startsWith("blob:") ?? false) ||
-    (s.styleReferenceUrl?.startsWith("blob:") ?? false) ||
-    (s.backgroundReferenceUrl?.startsWith("blob:") ?? false);
+    apiMissing &&
+    ((s.mainReferenceUrl?.startsWith("blob:") ?? false) ||
+      (s.styleReferenceUrl?.startsWith("blob:") ?? false) ||
+      (s.backgroundReferenceUrl?.startsWith("blob:") ?? false));
 
   return (
     <motion.div
@@ -156,20 +160,13 @@ export function CustomizeModeForm() {
         </p>
       ) : null}
 
-      {generationError ? (
-        <p className="rounded-2xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-          {formatGenerationErrorMessage(generationError, t)}
-        </p>
-      ) : null}
-
-      <ModelSelect
+      <StudioModelPicker
         mode={s.generationMode}
-        tier={s.modelTier}
-        onChange={(m, tier) => {
-          s.setGenerationMode(m);
-          s.setModelTier(tier);
-        }}
-        t={t}
+        studioPriceTier={s.studioPriceTier}
+        falModelId={s.falModelId}
+        onModeChange={s.setGenerationMode}
+        onStudioPriceTierChange={s.setStudioPriceTier}
+        onFalModelIdChange={s.setFalModelId}
       />
 
       <SectionAccordion title={t("sectionReference")} defaultOpen>
@@ -232,13 +229,15 @@ export function CustomizeModeForm() {
             value={s.gender}
             onChange={s.setGender}
             options={["Woman", "Man", "Non-binary", "Any"]}
+            labelMap={subjectLabelMap}
           />
           <FieldSelect
             id="g-age"
             label={t("ageRange")}
             value={s.ageRange}
             onChange={s.setAgeRange}
-            options={["18–24", "25–34", "35–44", "45–54", "55+"]}
+            options={["young adult", "adult", "mid-life", "mature", "senior"]}
+            labelMap={subjectLabelMap}
           />
           <FieldSelect
             id="g-eth"
@@ -246,6 +245,7 @@ export function CustomizeModeForm() {
             value={s.ethnicity}
             onChange={s.setEthnicity}
             options={["Neutral", "East Asian", "South Asian", "Black", "Latine", "Middle Eastern", "White", "Mixed"]}
+            labelMap={subjectLabelMap}
           />
           <FieldSelect
             id="g-skin"
@@ -253,6 +253,7 @@ export function CustomizeModeForm() {
             value={s.skinTone}
             onChange={s.setSkinTone}
             options={["Fair", "Light", "Medium", "Tan", "Deep", "Rich deep"]}
+            labelMap={subjectLabelMap}
           />
           <FieldSelect
             id="g-hc"
@@ -260,6 +261,15 @@ export function CustomizeModeForm() {
             value={s.hairColor}
             onChange={s.setHairColor}
             options={["Black", "Brown", "Blonde", "Auburn", "Red", "Gray", "Fashion color"]}
+            labelMap={{
+              "Black": t("optHairBlack"),
+              "Brown": t("optHairBrown"),
+              "Blonde": t("optHairBlonde"),
+              "Auburn": t("optHairAuburn"),
+              "Red": t("optHairRed"),
+              "Gray": t("optHairGray"),
+              "Fashion color": t("optHairFashion"),
+            }}
           />
           <FieldSelect
             id="g-hs"
@@ -267,6 +277,7 @@ export function CustomizeModeForm() {
             value={s.hairStyle}
             onChange={s.setHairStyle}
             options={["Sleek", "Wavy", "Curly", "Short crop", "Long layers", "Updo", "Braided"]}
+            labelMap={subjectLabelMap}
           />
           <FieldSelect
             id="g-ex"
@@ -274,6 +285,7 @@ export function CustomizeModeForm() {
             value={s.expression}
             onChange={s.setExpression}
             options={["Neutral", "Soft smile", "Confident", "Serious", "Playful", "Editorial"]}
+            labelMap={subjectLabelMap}
           />
         </div>
       </SectionAccordion>
@@ -286,6 +298,7 @@ export function CustomizeModeForm() {
             value={s.bodyType}
             onChange={s.setBodyType}
             options={["Athletic", "Average", "Curvy", "Slim", "Plus", "Runway"]}
+            labelMap={subjectLabelMap}
           />
           <div className="space-y-2">
             <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-white/35">
@@ -310,6 +323,7 @@ export function CustomizeModeForm() {
             value={s.poseStyle}
             onChange={s.setPoseStyle}
             options={["Standing", "Seated", "Walking", "Hero pose", "Casual lean", "Hands visible"]}
+            labelMap={subjectLabelMap}
           />
           <FieldSelect
             id="g-frame"
@@ -317,6 +331,7 @@ export function CustomizeModeForm() {
             value={s.cameraFraming}
             onChange={s.setCameraFraming}
             options={["Full body", "Three-quarter", "Waist-up", "Close-up", "Macro detail"]}
+            labelMap={subjectLabelMap}
           />
         </div>
       </SectionAccordion>
@@ -343,7 +358,7 @@ export function CustomizeModeForm() {
                     "rounded-xl border py-2 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
                     s.aspectRatio === id
                       ? "border-indigo-500/50 bg-indigo-500/15 text-indigo-200"
-                      : "border-white/[0.08] bg-white/[0.02] text-white/45"
+                      : "border-white/8 bg-white/2 text-white/45"
                   )}
                 >
                   {label}
@@ -403,7 +418,7 @@ export function CustomizeModeForm() {
                     "rounded-xl border py-2 text-[11px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
                     s.backgroundMode === id
                       ? "border-indigo-500/50 bg-indigo-500/15 text-indigo-200"
-                      : "border-white/[0.08] bg-white/[0.02] text-white/45"
+                      : "border-white/8 bg-white/2 text-white/45"
                   )}
                 >
                   {label}
@@ -435,7 +450,7 @@ export function CustomizeModeForm() {
                       "flex-1 rounded-xl border py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
                       s.duration === d
                         ? "border-indigo-500/50 bg-indigo-500/15 text-indigo-200"
-                        : "border-white/[0.08] text-white/45"
+                        : "border-white/8 text-white/45"
                     )}
                   >
                     {d} {t("seconds")}
@@ -462,7 +477,7 @@ export function CustomizeModeForm() {
               onChange={(e) => s.setNegativePrompt(e.target.value)}
               rows={2}
               placeholder={t("negativePlaceholder")}
-              className="resize-none rounded-2xl border-white/[0.08] bg-white/[0.04] text-sm text-white placeholder:text-white/25"
+              className="resize-none rounded-2xl border-white/8 bg-white/4 text-sm text-white placeholder:text-white/25"
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -483,12 +498,12 @@ export function CustomizeModeForm() {
                     s.setSeed(v === "" ? null : Number(v));
                   }}
                   placeholder={t("seedRandom")}
-                  className="h-10 flex-1 rounded-xl border-white/[0.08] bg-white/[0.04] text-white"
+                  className="h-10 flex-1 rounded-xl border-white/8 bg-white/4 text-white"
                 />
                 <button
                   type="button"
                   onClick={() => s.setSeed(null)}
-                  className="rounded-xl border border-white/[0.08] px-3 text-xs text-white/50 transition-colors hover:bg-white/[0.05]"
+                  className="rounded-xl border border-white/8 px-3 text-xs text-white/50 transition-colors hover:bg-white/5"
                 >
                   {t("seedRandom")}
                 </button>
@@ -505,7 +520,7 @@ export function CustomizeModeForm() {
               "flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
               enhancePrompt
                 ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-100"
-                : "border-white/[0.08] bg-white/[0.02] text-white/60"
+                : "border-white/8 bg-white/2 text-white/60"
             )}
           >
             <span>{t("enhanceWithGpt")}</span>
@@ -539,11 +554,11 @@ export function CustomizeModeForm() {
           onChange={(e) => s.setPrompt(e.target.value)}
           rows={4}
           placeholder={t("promptPlaceholder")}
-          className="resize-none rounded-2xl border-white/[0.08] bg-white/[0.04] text-white placeholder:text-white/25"
+          className="resize-none rounded-2xl border-white/8 bg-white/4 text-white placeholder:text-white/25"
         />
       </div>
 
-      <div className="sticky bottom-0 z-10 space-y-3 border-t border-white/[0.06] bg-[#060606]/95 pt-4 backdrop-blur-md">
+      <div className="sticky bottom-0 z-10 space-y-3 border-t border-white/10 bg-[rgb(8_8_10/0.92)] pt-4 shadow-[0_-12px_40px_rgba(0,0,0,0.4)] backdrop-blur-xl">
         <CreditCostDisplay />
         <GenerateButton
           loading={isGenerating}

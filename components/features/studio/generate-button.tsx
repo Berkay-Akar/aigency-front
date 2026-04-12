@@ -30,7 +30,7 @@ export function GenerateButton({
         "relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl py-3.5 text-sm font-semibold text-white transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/50 disabled:pointer-events-none disabled:opacity-45",
         loading
           ? "bg-indigo-600/80 shadow-lg shadow-indigo-600/20"
-          : "bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-900/30",
+          : "bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-900/30",
         className
       )}
     >
@@ -39,7 +39,7 @@ export function GenerateButton({
           <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
           <span>{t("generating")}</span>
           <motion.span
-            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent"
             animate={{ x: ["-100%", "100%"] }}
             transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
           />

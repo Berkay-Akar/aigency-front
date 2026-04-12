@@ -21,7 +21,7 @@ export function AnalyticsCard({
   bg,
 }: AnalyticsCardProps) {
   return (
-    <div className="p-4 md:p-6 rounded-3xl bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.09] transition-all duration-200 group">
+    <div className="group rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md transition-all duration-200 hover:border-white/15 hover:bg-white/[0.07] md:p-6">
       <div className="flex items-start justify-between mb-4 md:mb-6">
         <div
           className={cn(

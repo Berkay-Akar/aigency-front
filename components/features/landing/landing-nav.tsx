@@ -3,7 +3,7 @@ import { Logo } from "@/components/shared/logo";
 
 export function LandingNav() {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 h-[72px] border-b border-white/[0.035] bg-[#080808]/90 backdrop-blur-xl">
+    <nav className="fixed top-0 right-0 left-0 z-50 flex h-[72px] items-center justify-between border-b border-white/10 bg-[rgb(8_8_8/0.72)] px-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
       <Logo />
 
       <div className="hidden md:flex items-center gap-10">
