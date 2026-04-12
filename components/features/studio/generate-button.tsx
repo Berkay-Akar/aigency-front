@@ -31,7 +31,7 @@ export function GenerateButton({
         loading
           ? "bg-indigo-600/80 shadow-lg shadow-indigo-600/20"
           : "bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-900/30",
-        className
+        className,
       )}
     >
       {loading ? (

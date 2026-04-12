@@ -66,65 +66,65 @@ export function CustomizeModeForm() {
 
   const subjectLabelMap: Record<string, string> = {
     // gender
-    "Woman": t("optGenderWoman"),
-    "Man": t("optGenderMan"),
+    Woman: t("optGenderWoman"),
+    Man: t("optGenderMan"),
     "Non-binary": t("optGenderNonBinary"),
-    "Any": t("optGenderAny"),
+    Any: t("optGenderAny"),
     // age
     "young adult": t("optAgeYoung"),
-    "adult": t("optAgeAdult"),
+    adult: t("optAgeAdult"),
     "mid-life": t("optAgeMidLife"),
-    "mature": t("optAgeMature"),
-    "senior": t("optAgeSenior"),
+    mature: t("optAgeMature"),
+    senior: t("optAgeSenior"),
     // ethnicity
-    "Neutral": t("optEthNeutral"),
+    Neutral: t("optEthNeutral"),
     "East Asian": t("optEthEastAsian"),
     "South Asian": t("optEthSouthAsian"),
-    "Black": t("optEthBlack"),
-    "Latine": t("optEthLatine"),
+    Black: t("optEthBlack"),
+    Latine: t("optEthLatine"),
     "Middle Eastern": t("optEthMiddleEastern"),
-    "White": t("optEthWhite"),
-    "Mixed": t("optEthMixed"),
+    White: t("optEthWhite"),
+    Mixed: t("optEthMixed"),
     // skin tone
-    "Fair": t("optSkinFair"),
-    "Light": t("optSkinLight"),
-    "Medium": t("optSkinMedium"),
-    "Tan": t("optSkinTan"),
-    "Deep": t("optSkinDeep"),
+    Fair: t("optSkinFair"),
+    Light: t("optSkinLight"),
+    Medium: t("optSkinMedium"),
+    Tan: t("optSkinTan"),
+    Deep: t("optSkinDeep"),
     "Rich deep": t("optSkinRichDeep"),
     // hair color
-    "Black_hair": t("optHairBlack"),
-    "Brown": t("optHairBrown"),
-    "Blonde": t("optHairBlonde"),
-    "Auburn": t("optHairAuburn"),
-    "Red": t("optHairRed"),
-    "Gray": t("optHairGray"),
+    Black_hair: t("optHairBlack"),
+    Brown: t("optHairBrown"),
+    Blonde: t("optHairBlonde"),
+    Auburn: t("optHairAuburn"),
+    Red: t("optHairRed"),
+    Gray: t("optHairGray"),
     "Fashion color": t("optHairFashion"),
     // hair style
-    "Sleek": t("optHairSleek"),
-    "Wavy": t("optHairWavy"),
-    "Curly": t("optHairCurly"),
+    Sleek: t("optHairSleek"),
+    Wavy: t("optHairWavy"),
+    Curly: t("optHairCurly"),
     "Short crop": t("optHairShortCrop"),
     "Long layers": t("optHairLongLayers"),
-    "Updo": t("optHairUpdo"),
-    "Braided": t("optHairBraided"),
+    Updo: t("optHairUpdo"),
+    Braided: t("optHairBraided"),
     // expression
     "Soft smile": t("optExprSoftSmile"),
-    "Confident": t("optExprConfident"),
-    "Serious": t("optExprSerious"),
-    "Playful": t("optExprPlayful"),
-    "Editorial": t("optExprEditorial"),
+    Confident: t("optExprConfident"),
+    Serious: t("optExprSerious"),
+    Playful: t("optExprPlayful"),
+    Editorial: t("optExprEditorial"),
     // body type
-    "Athletic": t("optBodyAthletic"),
-    "Average": t("optBodyAverage"),
-    "Curvy": t("optBodyCurvy"),
-    "Slim": t("optBodySlim"),
-    "Plus": t("optBodyPlus"),
-    "Runway": t("optBodyRunway"),
+    Athletic: t("optBodyAthletic"),
+    Average: t("optBodyAverage"),
+    Curvy: t("optBodyCurvy"),
+    Slim: t("optBodySlim"),
+    Plus: t("optBodyPlus"),
+    Runway: t("optBodyRunway"),
     // pose
-    "Standing": t("optPoseStanding"),
-    "Seated": t("optPoseSeated"),
-    "Walking": t("optPoseWalking"),
+    Standing: t("optPoseStanding"),
+    Seated: t("optPoseSeated"),
+    Walking: t("optPoseWalking"),
     "Hero pose": t("optPoseHero"),
     "Casual lean": t("optPoseCasualLean"),
     "Hands visible": t("optPoseHandsVisible"),
@@ -152,7 +152,9 @@ export function CustomizeModeForm() {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25 }}
     >
-      <p className="text-xs leading-relaxed text-white/40">{ts("helperCustomize")}</p>
+      <p className="text-xs leading-relaxed text-white/40">
+        {ts("helperCustomize")}
+      </p>
 
       {showMockHint ? (
         <p className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.07] px-3 py-2 text-[11px] text-amber-200/90">
@@ -244,7 +246,16 @@ export function CustomizeModeForm() {
             label={t("ethnicity")}
             value={s.ethnicity}
             onChange={s.setEthnicity}
-            options={["Neutral", "East Asian", "South Asian", "Black", "Latine", "Middle Eastern", "White", "Mixed"]}
+            options={[
+              "Neutral",
+              "East Asian",
+              "South Asian",
+              "Black",
+              "Latine",
+              "Middle Eastern",
+              "White",
+              "Mixed",
+            ]}
             labelMap={subjectLabelMap}
           />
           <FieldSelect
@@ -260,14 +271,22 @@ export function CustomizeModeForm() {
             label={t("hairColor")}
             value={s.hairColor}
             onChange={s.setHairColor}
-            options={["Black", "Brown", "Blonde", "Auburn", "Red", "Gray", "Fashion color"]}
+            options={[
+              "Black",
+              "Brown",
+              "Blonde",
+              "Auburn",
+              "Red",
+              "Gray",
+              "Fashion color",
+            ]}
             labelMap={{
-              "Black": t("optHairBlack"),
-              "Brown": t("optHairBrown"),
-              "Blonde": t("optHairBlonde"),
-              "Auburn": t("optHairAuburn"),
-              "Red": t("optHairRed"),
-              "Gray": t("optHairGray"),
+              Black: t("optHairBlack"),
+              Brown: t("optHairBrown"),
+              Blonde: t("optHairBlonde"),
+              Auburn: t("optHairAuburn"),
+              Red: t("optHairRed"),
+              Gray: t("optHairGray"),
               "Fashion color": t("optHairFashion"),
             }}
           />
@@ -276,7 +295,15 @@ export function CustomizeModeForm() {
             label={t("hairStyle")}
             value={s.hairStyle}
             onChange={s.setHairStyle}
-            options={["Sleek", "Wavy", "Curly", "Short crop", "Long layers", "Updo", "Braided"]}
+            options={[
+              "Sleek",
+              "Wavy",
+              "Curly",
+              "Short crop",
+              "Long layers",
+              "Updo",
+              "Braided",
+            ]}
             labelMap={subjectLabelMap}
           />
           <FieldSelect
@@ -284,7 +311,14 @@ export function CustomizeModeForm() {
             label={t("expression")}
             value={s.expression}
             onChange={s.setExpression}
-            options={["Neutral", "Soft smile", "Confident", "Serious", "Playful", "Editorial"]}
+            options={[
+              "Neutral",
+              "Soft smile",
+              "Confident",
+              "Serious",
+              "Playful",
+              "Editorial",
+            ]}
             labelMap={subjectLabelMap}
           />
         </div>
@@ -303,7 +337,9 @@ export function CustomizeModeForm() {
           <div className="space-y-2">
             <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-white/35">
               <span>{t("height")}</span>
-              <span className="tabular-nums text-white/50">{s.heightEmphasis}%</span>
+              <span className="tabular-nums text-white/50">
+                {s.heightEmphasis}%
+              </span>
             </div>
             <Slider
               value={[s.heightEmphasis]}
@@ -322,7 +358,14 @@ export function CustomizeModeForm() {
             label={t("poseStyle")}
             value={s.poseStyle}
             onChange={s.setPoseStyle}
-            options={["Standing", "Seated", "Walking", "Hero pose", "Casual lean", "Hands visible"]}
+            options={[
+              "Standing",
+              "Seated",
+              "Walking",
+              "Hero pose",
+              "Casual lean",
+              "Hands visible",
+            ]}
             labelMap={subjectLabelMap}
           />
           <FieldSelect
@@ -330,7 +373,13 @@ export function CustomizeModeForm() {
             label={t("cameraFraming")}
             value={s.cameraFraming}
             onChange={s.setCameraFraming}
-            options={["Full body", "Three-quarter", "Waist-up", "Close-up", "Macro detail"]}
+            options={[
+              "Full body",
+              "Three-quarter",
+              "Waist-up",
+              "Close-up",
+              "Macro detail",
+            ]}
             labelMap={subjectLabelMap}
           />
         </div>
@@ -358,7 +407,7 @@ export function CustomizeModeForm() {
                     "rounded-xl border py-2 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
                     s.aspectRatio === id
                       ? "border-indigo-500/50 bg-indigo-500/15 text-indigo-200"
-                      : "border-white/8 bg-white/2 text-white/45"
+                      : "border-white/8 bg-white/2 text-white/45",
                   )}
                 >
                   {label}
@@ -370,7 +419,9 @@ export function CustomizeModeForm() {
           <div className="space-y-2">
             <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-white/35">
               <span>{t("styleStrength")}</span>
-              <span className="tabular-nums text-white/50">{s.styleStrength}%</span>
+              <span className="tabular-nums text-white/50">
+                {s.styleStrength}%
+              </span>
             </div>
             <Slider
               value={[s.styleStrength]}
@@ -385,7 +436,9 @@ export function CustomizeModeForm() {
           <div className="space-y-2">
             <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-white/35">
               <span>{t("promptStrength")}</span>
-              <span className="tabular-nums text-white/50">{s.promptStrength}%</span>
+              <span className="tabular-nums text-white/50">
+                {s.promptStrength}%
+              </span>
             </div>
             <Slider
               value={[s.promptStrength]}
@@ -418,7 +471,7 @@ export function CustomizeModeForm() {
                     "rounded-xl border py-2 text-[11px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
                     s.backgroundMode === id
                       ? "border-indigo-500/50 bg-indigo-500/15 text-indigo-200"
-                      : "border-white/8 bg-white/2 text-white/45"
+                      : "border-white/8 bg-white/2 text-white/45",
                   )}
                 >
                   {label}
@@ -450,7 +503,7 @@ export function CustomizeModeForm() {
                       "flex-1 rounded-xl border py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
                       s.duration === d
                         ? "border-indigo-500/50 bg-indigo-500/15 text-indigo-200"
-                        : "border-white/8 text-white/45"
+                        : "border-white/8 text-white/45",
                     )}
                   >
                     {d} {t("seconds")}
@@ -520,20 +573,22 @@ export function CustomizeModeForm() {
               "flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
               enhancePrompt
                 ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-100"
-                : "border-white/8 bg-white/2 text-white/60"
+                : "border-white/8 bg-white/2 text-white/60",
             )}
           >
             <span>{t("enhanceWithGpt")}</span>
             <span
               className={cn(
                 "relative inline-flex h-6 w-10 shrink-0 rounded-full border transition-colors",
-                enhancePrompt ? "border-indigo-400/50 bg-indigo-500/40" : "border-white/20 bg-white/10"
+                enhancePrompt
+                  ? "border-indigo-400/50 bg-indigo-500/40"
+                  : "border-white/20 bg-white/10",
               )}
             >
               <span
                 className={cn(
                   "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white transition-transform",
-                  enhancePrompt && "translate-x-4"
+                  enhancePrompt && "translate-x-4",
                 )}
               />
             </span>

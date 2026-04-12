@@ -77,15 +77,21 @@ export function Topbar() {
             className="bg-[#111] border-white/8 rounded-xl shadow-2xl w-48"
           >
             <div className="px-3 py-2.5">
-              <p className="text-sm font-medium text-white">{user?.name ?? t("user")}</p>
+              <p className="text-sm font-medium text-white">
+                {user?.name ?? t("user")}
+              </p>
               <p className="text-xs text-white/40">{user?.email ?? ""}</p>
             </div>
             <DropdownMenuSeparator className="bg-white/6" />
             <DropdownMenuItem className="text-sm text-white/60 hover:text-white rounded-lg cursor-pointer">
-              <Link href="/settings" className="w-full">{t("profile")}</Link>
+              <Link href="/settings" className="w-full">
+                {t("profile")}
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem className="text-sm text-white/60 hover:text-white rounded-lg cursor-pointer">
-              <Link href="/billing" className="w-full">{t("billing")}</Link>
+              <Link href="/billing" className="w-full">
+                {t("billing")}
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-white/6" />
             <DropdownMenuItem

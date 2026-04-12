@@ -92,9 +92,7 @@ function FS({
           id={id}
           className="h-9 w-full text-sm text-white"
         >
-          <SelectValue>
-            {value ? (labelMap[value] ?? value) : "—"}
-          </SelectValue>
+          <SelectValue>{value ? (labelMap[value] ?? value) : "—"}</SelectValue>
         </SelectTrigger>
         <SelectContent align="start" sideOffset={4}>
           {options.map((o) => (
@@ -352,7 +350,10 @@ export function ModelPhotoForm() {
           animate={{ opacity: 1, height: "auto" }}
           transition={{ duration: 0.2 }}
         >
-          <SectionAccordion title={t("customizeModelTitle")} defaultOpen={true}>
+          <SectionAccordion
+            title={t("customizeModelTitle")}
+            defaultOpen={false}
+          >
             <div className="flex flex-col gap-3">
               <FS
                 id="m-gender"
@@ -502,7 +503,9 @@ export function ModelPhotoForm() {
       <div className="space-y-3">
         <p className="text-center text-[11px] text-white/40">
           {t("estimatedCredits")}:{" "}
-          <span className="font-semibold text-indigo-300">{creditEstimate}</span>
+          <span className="font-semibold text-indigo-300">
+            {creditEstimate}
+          </span>
         </p>
 
         <button

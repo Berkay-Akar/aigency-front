@@ -194,7 +194,7 @@ function EmptyState() {
   const t = useTranslations("productStudio");
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-        <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-8">
+      <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-8">
         <ImageIcon className="mx-auto mb-3 h-10 w-10 text-white/15" />
         <p className="text-sm font-medium text-white/30">{t("previewEmpty")}</p>
         <p className="mt-1 text-xs text-white/20">{t("previewEmptyHint")}</p>
@@ -318,8 +318,7 @@ function MultiResult({
                 alt={ANGLE_LABELS[i]}
                 className="h-full w-full object-cover"
               />
-              <div
-                className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/60 to-transparent px-1 py-1 text-[9px] font-semibold text-white">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/60 to-transparent px-1 py-1 text-[9px] font-semibold text-white">
                 {ANGLE_LABELS[i] ?? i + 1}
               </div>
             </button>

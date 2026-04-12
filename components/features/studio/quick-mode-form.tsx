@@ -72,7 +72,9 @@ export function QuickModeForm() {
         onFalModelIdChange={setFalModelId}
       />
 
-      <p className="text-xs leading-relaxed text-white/40">{ts("helperQuick")}</p>
+      <p className="text-xs leading-relaxed text-white/40">
+        {ts("helperQuick")}
+      </p>
 
       {showMockHint ? (
         <p className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.07] px-3 py-2 text-[11px] text-amber-200/90">
@@ -133,7 +135,7 @@ export function QuickModeForm() {
                 "rounded-xl border py-2.5 text-xs font-medium backdrop-blur-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
                 aspectRatio === id
                   ? "border-indigo-500/50 bg-indigo-500/20 text-indigo-100"
-                  : "border-white/10 bg-white/5 text-white/45 hover:bg-white/8 hover:text-white/70"
+                  : "border-white/10 bg-white/5 text-white/45 hover:bg-white/8 hover:text-white/70",
               )}
             >
               {label}
@@ -157,7 +159,7 @@ export function QuickModeForm() {
                   "flex-1 rounded-xl border py-2.5 text-sm font-medium backdrop-blur-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
                   duration === d
                     ? "border-indigo-500/50 bg-indigo-500/20 text-indigo-100"
-                    : "border-white/10 bg-white/5 text-white/45 hover:bg-white/8"
+                    : "border-white/10 bg-white/5 text-white/45 hover:bg-white/8",
                 )}
               >
                 {d} {t("seconds")}
@@ -178,15 +180,20 @@ export function QuickModeForm() {
           >
             <SelectTrigger className="h-10 w-full text-sm text-white">
               <SelectValue>
-                {platform === "general" ? t("platformGeneral")
-                  : platform === "instagram" ? t("platformInstagram")
-                  : platform === "tiktok" ? t("platformTiktok")
-                  : platform || t("platform")}
+                {platform === "general"
+                  ? t("platformGeneral")
+                  : platform === "instagram"
+                    ? t("platformInstagram")
+                    : platform === "tiktok"
+                      ? t("platformTiktok")
+                      : platform || t("platform")}
               </SelectValue>
             </SelectTrigger>
             <SelectContent align="start" sideOffset={6}>
               <SelectItem value="general">{t("platformGeneral")}</SelectItem>
-              <SelectItem value="instagram">{t("platformInstagram")}</SelectItem>
+              <SelectItem value="instagram">
+                {t("platformInstagram")}
+              </SelectItem>
               <SelectItem value="tiktok">{t("platformTiktok")}</SelectItem>
             </SelectContent>
           </Select>
@@ -195,17 +202,18 @@ export function QuickModeForm() {
           <Label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
             {t("tone")}
           </Label>
-          <Select
-            value={tone}
-            onValueChange={(v) => setTone(v as AiTone)}
-          >
+          <Select value={tone} onValueChange={(v) => setTone(v as AiTone)}>
             <SelectTrigger className="h-10 w-full text-sm text-white">
               <SelectValue>
-                {tone === "professional" ? t("toneProfessional")
-                  : tone === "casual" ? t("toneCasual")
-                  : tone === "humorous" ? t("toneHumorous")
-                  : tone === "inspirational" ? t("toneInspirational")
-                  : tone || t("tone")}
+                {tone === "professional"
+                  ? t("toneProfessional")
+                  : tone === "casual"
+                    ? t("toneCasual")
+                    : tone === "humorous"
+                      ? t("toneHumorous")
+                      : tone === "inspirational"
+                        ? t("toneInspirational")
+                        : tone || t("tone")}
               </SelectValue>
             </SelectTrigger>
             <SelectContent align="start" sideOffset={6}>

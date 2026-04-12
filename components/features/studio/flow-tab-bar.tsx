@@ -50,11 +50,11 @@ export function FlowTabBar({ compact = false }: { compact?: boolean }) {
             "relative flex shrink-0 items-center gap-1.5 rounded-lg transition-colors select-none",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
             compact
-              ? "px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider"
+              ? "px-4 py-2 text-xs font-semibold uppercase tracking-wider"
               : "flex-col px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider",
             activeProductFlow === id
               ? "text-indigo-200"
-              : "text-white/40 hover:text-white/65",
+              : "text-white/45 hover:text-white/70",
           )}
         >
           {activeProductFlow === id && (

@@ -16,8 +16,8 @@ export function ControlPanel({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex h-full min-h-0 flex-col rounded-3xl border border-white/[0.07] bg-[#060606]/90 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md md:p-5",
-        className
+        "flex h-full min-h-0 flex-col rounded-3xl border border-white/10 bg-[rgb(8_8_10/0.78)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl md:p-5",
+        className,
       )}
     >
       <div className="mb-5 shrink-0 space-y-1">
@@ -26,14 +26,16 @@ export function ControlPanel({ className }: { className?: string }) {
             <Sparkles className="h-4 w-4 text-indigo-400" aria-hidden />
           </div>
           <div>
-            <h1 className="text-base font-semibold tracking-tight text-white">{t("title")}</h1>
+            <h1 className="text-base font-semibold tracking-tight text-white">
+              {t("title")}
+            </h1>
             <p className="text-[11px] text-white/35">{t("subtitle")}</p>
           </div>
         </div>
       </div>
 
       <div
-        className="mb-5 flex shrink-0 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-1"
+        className="mb-5 flex shrink-0 rounded-2xl border border-white/10 bg-white/5 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm"
         role="tablist"
         aria-label={t("title")}
       >
@@ -46,13 +48,13 @@ export function ControlPanel({ className }: { className?: string }) {
             "relative flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
             uiMode === "quick"
               ? "text-white"
-              : "text-white/40 hover:text-white/65"
+              : "text-white/40 hover:text-white/65",
           )}
         >
           {uiMode === "quick" ? (
             <motion.span
               layoutId="studioModePill"
-              className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-600/35 to-violet-600/25 shadow-inner"
+              className="absolute inset-0 rounded-xl bg-linear-to-r from-indigo-600/35 to-violet-600/25 shadow-inner"
               transition={{ type: "spring", stiffness: 380, damping: 32 }}
             />
           ) : null}
@@ -67,17 +69,20 @@ export function ControlPanel({ className }: { className?: string }) {
             "relative flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
             uiMode === "customize"
               ? "text-white"
-              : "text-white/40 hover:text-white/65"
+              : "text-white/40 hover:text-white/65",
           )}
         >
           {uiMode === "customize" ? (
             <motion.span
               layoutId="studioModePill"
-              className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-600/35 to-violet-600/25 shadow-inner"
+              className="absolute inset-0 rounded-xl bg-linear-to-r from-indigo-600/35 to-violet-600/25 shadow-inner"
               transition={{ type: "spring", stiffness: 380, damping: 32 }}
             />
           ) : null}
-          <SlidersHorizontal className="relative z-10 h-3.5 w-3.5 opacity-80" aria-hidden />
+          <SlidersHorizontal
+            className="relative z-10 h-3.5 w-3.5 opacity-80"
+            aria-hidden
+          />
           <span className="relative z-10">{t("customize")}</span>
         </button>
       </div>

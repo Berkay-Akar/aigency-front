@@ -198,7 +198,9 @@ export function ProductAnglesForm() {
       <div className="space-y-3">
         <p className="text-center text-[11px] text-white/40">
           {t("estimatedCredits")}:{" "}
-          <span className="font-semibold text-indigo-300">{creditEstimate}</span>
+          <span className="font-semibold text-indigo-300">
+            {creditEstimate}
+          </span>
           <span className="ml-1 opacity-60">
             ({anglesCount} × {productResolution === "2K" ? 25 : 10})
           </span>

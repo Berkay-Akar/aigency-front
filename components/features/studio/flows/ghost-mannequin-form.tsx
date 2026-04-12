@@ -45,20 +45,19 @@ export function GhostMannequinForm() {
       <p className="text-xs leading-relaxed text-white/40">{t("ghostDesc")}</p>
 
       <UploadDropzone
-          compact
-          label={t("clothingPhoto")}
-          previewUrl={primaryUrl}
-          onFile={(f) => {
-            const prev = primaryUrl;
-            if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-            setProductImageUrls([URL.createObjectURL(f)]);
-          }}
-          onClear={() => {
-            if (primaryUrl?.startsWith("blob:"))
-              URL.revokeObjectURL(primaryUrl);
-            setProductImageUrls([]);
-          }}
-        />
+        compact
+        label={t("clothingPhoto")}
+        previewUrl={primaryUrl}
+        onFile={(f) => {
+          const prev = primaryUrl;
+          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+          setProductImageUrls([URL.createObjectURL(f)]);
+        }}
+        onClear={() => {
+          if (primaryUrl?.startsWith("blob:")) URL.revokeObjectURL(primaryUrl);
+          setProductImageUrls([]);
+        }}
+      />
 
       {/* Quality selector */}
       <div>
@@ -169,7 +168,9 @@ export function GhostMannequinForm() {
       <div className="space-y-3">
         <p className="text-center text-[11px] text-white/40">
           {t("estimatedCredits")}:{" "}
-          <span className="font-semibold text-indigo-300">{creditEstimate}</span>
+          <span className="font-semibold text-indigo-300">
+            {creditEstimate}
+          </span>
         </p>
 
         <button

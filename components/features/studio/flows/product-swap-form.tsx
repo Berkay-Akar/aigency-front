@@ -128,13 +128,17 @@ export function ProductSwapForm() {
       <div className="space-y-3">
         <p className="text-center text-[11px] text-white/40">
           {t("estimatedCredits")}:{" "}
-          <span className="font-semibold text-indigo-300">{creditEstimate}</span>
+          <span className="font-semibold text-indigo-300">
+            {creditEstimate}
+          </span>
         </p>
 
         <button
           type="button"
           disabled={
-            isGenerating || productImageUrls.length === 0 || !productSceneImageUrl
+            isGenerating ||
+            productImageUrls.length === 0 ||
+            !productSceneImageUrl
           }
           onClick={() => void startProductGeneration()}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-indigo-600 to-violet-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-900/30 transition hover:from-indigo-500 hover:to-violet-500 disabled:pointer-events-none disabled:opacity-45"

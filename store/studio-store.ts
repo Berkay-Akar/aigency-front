@@ -805,17 +805,39 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       set({
         modelPhotoOptions: opts,
         // fill any field that isn't in the returned option set back to the first valid option
-        modelGender: opts.genders.includes(s.modelGender) ? s.modelGender : (opts.genders[0] ?? ""),
-        modelEthnicity: opts.ethnicities.includes(s.modelEthnicity) ? s.modelEthnicity : (opts.ethnicities[0] ?? ""),
-        modelAge: opts.ageRanges.includes(s.modelAge) ? s.modelAge : (opts.ageRanges[0] ?? ""),
-        modelSkinColor: opts.skinColors.includes(s.modelSkinColor) ? s.modelSkinColor : (opts.skinColors[0] ?? ""),
-        modelFaceType: opts.faceTypes.includes(s.modelFaceType) ? s.modelFaceType : (opts.faceTypes[0] ?? ""),
-        modelEyeColor: opts.eyeColors.includes(s.modelEyeColor) ? s.modelEyeColor : (opts.eyeColors[0] ?? ""),
-        modelExpression: opts.expressions.includes(s.modelExpression) ? s.modelExpression : (opts.expressions[0] ?? ""),
-        modelBodySize: opts.bodySizes.includes(s.modelBodySize) ? s.modelBodySize : (opts.bodySizes[0] ?? ""),
-        modelHairColor: opts.hairColors.includes(s.modelHairColor) ? s.modelHairColor : (opts.hairColors[0] ?? ""),
-        modelHairstyle: opts.hairstyles.includes(s.modelHairstyle) ? s.modelHairstyle : (opts.hairstyles[0] ?? ""),
-        modelShotType: opts.shotTypes.includes(s.modelShotType) ? s.modelShotType : (opts.shotTypes[0] ?? ""),
+        modelGender: opts.genders.includes(s.modelGender)
+          ? s.modelGender
+          : (opts.genders[0] ?? ""),
+        modelEthnicity: opts.ethnicities.includes(s.modelEthnicity)
+          ? s.modelEthnicity
+          : (opts.ethnicities[0] ?? ""),
+        modelAge: opts.ageRanges.includes(s.modelAge)
+          ? s.modelAge
+          : (opts.ageRanges[0] ?? ""),
+        modelSkinColor: opts.skinColors.includes(s.modelSkinColor)
+          ? s.modelSkinColor
+          : (opts.skinColors[0] ?? ""),
+        modelFaceType: opts.faceTypes.includes(s.modelFaceType)
+          ? s.modelFaceType
+          : (opts.faceTypes[0] ?? ""),
+        modelEyeColor: opts.eyeColors.includes(s.modelEyeColor)
+          ? s.modelEyeColor
+          : (opts.eyeColors[0] ?? ""),
+        modelExpression: opts.expressions.includes(s.modelExpression)
+          ? s.modelExpression
+          : (opts.expressions[0] ?? ""),
+        modelBodySize: opts.bodySizes.includes(s.modelBodySize)
+          ? s.modelBodySize
+          : (opts.bodySizes[0] ?? ""),
+        modelHairColor: opts.hairColors.includes(s.modelHairColor)
+          ? s.modelHairColor
+          : (opts.hairColors[0] ?? ""),
+        modelHairstyle: opts.hairstyles.includes(s.modelHairstyle)
+          ? s.modelHairstyle
+          : (opts.hairstyles[0] ?? ""),
+        modelShotType: opts.shotTypes.includes(s.modelShotType)
+          ? s.modelShotType
+          : (opts.shotTypes[0] ?? ""),
       });
     } catch {
       // silent — form will still work with FALLBACK_OPTS
