@@ -13,6 +13,21 @@ import { GenerateButton } from "./generate-button";
 import { StudioModelPicker } from "./studio-model-picker";
 import { useStudioStore } from "@/store/studio-store";
 import { cn } from "@/lib/utils";
+import type { AiGenerationMode } from "@/lib/api";
+
+// Per-mode example images for upload slots (drop files in public/sample-inputs/).
+const UPLOAD_EXAMPLES: Partial<
+  Record<AiGenerationMode, { main: string; style: string }>
+> = {
+  "image-to-image": {
+    main: "/sample-inputs/image-to-image-pic1.jpg",
+    style: "/sample-inputs/image-to-image-pic2.jpg",
+  },
+  "image-to-video": {
+    main: "/sample-inputs/image-to-video-input-fast.png",
+    style: "/sample-inputs/image-to-video-input-fast.png",
+  },
+};
 
 function FieldSelect({
   id,
@@ -177,6 +192,7 @@ export function CustomizeModeForm() {
             <UploadDropzone
               label={t("referenceImage")}
               previewUrl={s.mainReferenceUrl}
+              exampleSrc={UPLOAD_EXAMPLES[s.generationMode]?.main ?? null}
               onFile={(file) => {
                 const url = URL.createObjectURL(file);
                 s.setMainReferenceUrl(url);
@@ -193,6 +209,7 @@ export function CustomizeModeForm() {
             label={t("styleReference")}
             optional
             previewUrl={s.styleReferenceUrl}
+            exampleSrc={UPLOAD_EXAMPLES[s.generationMode]?.style ?? null}
             onFile={(file) => {
               const url = URL.createObjectURL(file);
               s.setStyleReferenceUrl(url);

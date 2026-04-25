@@ -114,9 +114,9 @@ export function ProductStudioWorkspace() {
       </div>
 
       {/* ── Right: recent sessions ───────────────────────────────────── */}
-      <aside className="hidden w-50 shrink-0 xl:block xl:w-55">
+      {/* <aside className="hidden w-50 shrink-0 xl:block xl:w-55">
         <ProductRecentPanel className="h-full max-h-[calc(100vh-60px-44px-2.5rem)]" />
-      </aside>
+      </aside> */}
 
       {/* ── Mobile drawer ────────────────────────────────────────────── */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>

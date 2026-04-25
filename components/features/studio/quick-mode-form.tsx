@@ -17,7 +17,21 @@ import { GenerateButton } from "./generate-button";
 import { StudioModelPicker } from "./studio-model-picker";
 import { useStudioStore } from "@/store/studio-store";
 import { cn } from "@/lib/utils";
-import type { AiPlatform, AiTone } from "@/lib/api";
+import type { AiPlatform, AiTone, AiGenerationMode } from "@/lib/api";
+
+// Per-mode example images for upload slots (drop files in public/sample-inputs/).
+const UPLOAD_EXAMPLES: Partial<
+  Record<AiGenerationMode, { main: string; style: string }>
+> = {
+  "image-to-image": {
+    main: "/sample-inputs/image-to-image-pic1.jpg",
+    style: "/sample-inputs/image-to-image-pic2.jpg",
+  },
+  "image-to-video": {
+    main: "/sample-inputs/image-to-video-input-fast.png",
+    style: "/sample-inputs/image-to-video-input-fast.png",
+  },
+};
 
 export function QuickModeForm() {
   const t = useTranslations("generation");
@@ -86,6 +100,7 @@ export function QuickModeForm() {
         <UploadDropzone
           label={t("referenceImage")}
           previewUrl={mainReferenceUrl}
+          exampleSrc={UPLOAD_EXAMPLES[generationMode]?.main ?? null}
           onFile={(file) => {
             const url = URL.createObjectURL(file);
             setMainReferenceUrl(url);
@@ -99,21 +114,24 @@ export function QuickModeForm() {
         />
       ) : null}
 
-      <UploadDropzone
-        label={t("styleReference")}
-        optional
-        previewUrl={styleReferenceUrl}
-        onFile={(file) => {
-          const url = URL.createObjectURL(file);
-          setStyleReferenceUrl(url);
-        }}
-        onClear={() => {
-          if (styleReferenceUrl?.startsWith("blob:")) {
-            URL.revokeObjectURL(styleReferenceUrl);
-          }
-          setStyleReferenceUrl(null);
-        }}
-      />
+      {generationMode !== "image-to-video" && (
+        <UploadDropzone
+          label={t("styleReference")}
+          optional
+          previewUrl={styleReferenceUrl}
+          exampleSrc={UPLOAD_EXAMPLES[generationMode]?.style ?? null}
+          onFile={(file) => {
+            const url = URL.createObjectURL(file);
+            setStyleReferenceUrl(url);
+          }}
+          onClear={() => {
+            if (styleReferenceUrl?.startsWith("blob:")) {
+              URL.revokeObjectURL(styleReferenceUrl);
+            }
+            setStyleReferenceUrl(null);
+          }}
+        />
+      )}
 
       <div>
         <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-white/35">

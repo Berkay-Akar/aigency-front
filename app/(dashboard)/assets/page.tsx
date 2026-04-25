@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Download,
   ExternalLink,
@@ -10,9 +11,11 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { FilterBar } from "@/components/features/assets/filter-bar";
-import { assetsApi } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { assetsApi, type Asset } from "@/lib/api";
+import { downloadAsBlob, cn } from "@/lib/utils";
+import { useStudioStore } from "@/store/studio-store";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const PAGE_LIMIT = 20;
 
@@ -28,6 +31,9 @@ export default function AssetsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
+  const router = useRouter();
+  const loadFromAsset = useStudioStore((s) => s.loadFromAsset);
+
   const { data, isLoading } = useQuery({
     queryKey: ["assets", page, PAGE_LIMIT],
     queryFn: () => assetsApi.list(page, PAGE_LIMIT),
@@ -36,6 +42,23 @@ export default function AssetsPage() {
 
   const assets = data?.assets ?? [];
   const totalPages = data?.pagination.totalPages ?? 1;
+
+  async function handleDownload(asset: Asset) {
+    const ext = asset.url.split(".").pop()?.split("?")[0] ?? "png";
+    try {
+      await downloadAsBlob(
+        asset.url,
+        `aigencys-${asset.id.slice(0, 8)}.${ext}`,
+      );
+    } catch {
+      toast.error("Download failed");
+    }
+  }
+
+  function handleOpenInStudio(asset: Asset) {
+    loadFromAsset(asset);
+    router.push("/studio");
+  }
 
   const filtered = assets.filter((asset) => {
     const typeMatch =
@@ -58,7 +81,9 @@ export default function AssetsPage() {
         <div>
           <h1 className="text-xl font-bold text-white mb-1">Assets</h1>
           <p className="text-sm text-white/30">
-            {data ? `${data.pagination.total} assets in your library` : "Loading…"}
+            {data
+              ? `${data.pagination.total} assets in your library`
+              : "Loading…"}
           </p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20">
@@ -114,7 +139,11 @@ export default function AssetsPage() {
                     </p>
                   ) : null}
                   <div className="flex gap-2">
-                    <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 text-white text-xs font-medium hover:bg-white/20 transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => void handleDownload(asset)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 text-white text-xs font-medium hover:bg-white/20 transition-colors"
+                    >
                       <Download className="w-3 h-3" />
                       Download
                     </button>
@@ -126,8 +155,16 @@ export default function AssetsPage() {
                 </div>
 
                 <div className="absolute top-3 right-3">
-                  <button className="w-7 h-7 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
-                    <ExternalLink className="w-3 h-3" />
+                  <button
+                    type="button"
+                    onClick={() => handleOpenInStudio(asset)}
+                    title="Stüdyoda Gör"
+                    className="group/btn flex items-center gap-1.5 h-7 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 px-2 text-white hover:bg-white/20 transition-all overflow-hidden"
+                  >
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                    <span className="text-xs font-medium max-w-0 group-hover/btn:max-w-[5rem] overflow-hidden whitespace-nowrap transition-all duration-300">
+                      Stüdyoda Gör
+                    </span>
                   </button>
                 </div>
               </div>
@@ -145,7 +182,9 @@ export default function AssetsPage() {
           <div className="w-14 h-14 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
             <Search className="w-6 h-6 text-white/20" />
           </div>
-          <p className="text-white/30 text-sm font-medium mb-1">No assets found</p>
+          <p className="text-white/30 text-sm font-medium mb-1">
+            No assets found
+          </p>
           <p className="text-white/20 text-xs">Try adjusting your filters</p>
         </div>
       )}
@@ -160,7 +199,7 @@ export default function AssetsPage() {
               "px-4 py-2 rounded-xl border text-sm font-medium transition-colors",
               page <= 1
                 ? "border-white/[0.06] text-white/20 cursor-not-allowed"
-                : "border-white/[0.08] text-white/50 hover:text-white hover:border-white/20"
+                : "border-white/[0.08] text-white/50 hover:text-white hover:border-white/20",
             )}
           >
             Previous
@@ -175,7 +214,7 @@ export default function AssetsPage() {
               "px-4 py-2 rounded-xl border text-sm font-medium transition-colors",
               page >= totalPages
                 ? "border-white/[0.06] text-white/20 cursor-not-allowed"
-                : "border-white/[0.08] text-white/50 hover:text-white hover:border-white/20"
+                : "border-white/[0.08] text-white/50 hover:text-white hover:border-white/20",
             )}
           >
             Next

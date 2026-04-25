@@ -3,20 +3,37 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Download,
   RefreshCw,
   X,
   ChevronLeft,
   ChevronRight,
   ImageIcon,
-  Loader2,
+  Sparkles,
   AlertCircle,
   Video as VideoIcon,
+  CalendarPlus,
+  Copy,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { downloadAsBlob } from "@/lib/utils";
 import { useStudioStore } from "@/store/studio-store";
 import { useTranslations } from "next-intl";
-import type { GenerationResult } from "@/store/studio-store";
+import type { GenerationResult, ProductFlow } from "@/store/studio-store";
+import { toast } from "sonner";
+import { ScheduleModal } from "./schedule-modal";
+import { DownloadFormatMenu } from "./download-format-menu";
+
+// Drop a file in public/sample-outputs/ with the matching name to override the
+// nanoBanana fallback for that specific PRO flow.
+const PRO_SAMPLE_IMAGES: Record<ProductFlow, string | null> = {
+  "model-photo": null, // /sample-outputs/pro-model-photo.jpg
+  "product-angles": null, // /sample-outputs/pro-product-angles.jpg
+  "product-reference": "/sample-outputs/pro-reference-output.jpg",
+  "product-swap": "/sample-outputs/swap-output.webp", // /sample-outputs/pro-product-swap.jpg
+  "ghost-mannequin": null, // /sample-outputs/pro-ghost-mannequin.jpg
+  "photo-to-video": null, // /sample-outputs/pro-photo-to-video.jpg
+};
 
 // ─── Lightbox ──────────────────────────────────────────────────────────────────
 function Lightbox({
@@ -118,49 +135,39 @@ function Lightbox({
 }
 
 // ─── Download helper ───────────────────────────────────────────────────────────
-function downloadUrl(url: string, name: string) {
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  a.click();
+async function downloadUrl(url: string, name: string) {
+  await downloadAsBlob(url, name);
 }
 
 // ─── Loading state ─────────────────────────────────────────────────────────────
-function LoadingState({
-  count,
-  progress,
-}: {
-  count: number;
-  progress: number;
-}) {
+function LoadingState({ progress }: { count: number; progress: number }) {
   const t = useTranslations("productStudio");
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 p-8">
-      <div className="flex gap-3">
-        {Array.from({ length: count }).map((_, i) => (
-          <div
-            key={i}
-            className="skeleton h-16 w-16 rounded-xl"
-            style={{ animationDelay: `${i * 0.15}s` }}
-          />
-        ))}
-      </div>
-      <div className="w-full max-w-xs space-y-2 text-center">
-        <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
-          <motion.div
-            className="h-full rounded-full bg-linear-to-r from-indigo-500 to-violet-500"
-            style={{ width: `${Math.max(progress, 8)}%` }}
-            transition={{ ease: "easeOut", duration: 0.4 }}
-          />
+      <div className="relative w-full max-w-sm lg:max-w-[calc((100vh_-_280px)*0.75)] aspect-[3/4] overflow-hidden rounded-2xl border border-white/8 bg-white/3">
+        <motion.div
+          className="absolute inset-0 bg-linear-to-r from-transparent via-indigo-500/20 to-transparent"
+          animate={{ x: ["-100%", "100%"] }}
+          transition={{
+            duration: 1.8,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Sparkles className="h-10 w-10 text-indigo-400/80" aria-hidden />
         </div>
-        <p className="text-sm font-semibold tabular-nums text-white/50">
-          {progress}%
-        </p>
-        <p className="text-xs text-white/30">{t("previewLoading")}</p>
       </div>
-      <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
+      <div className="w-full max-w-md space-y-2">
+        <div className="flex justify-between text-xs text-white/45">
+          <span>{t("previewLoading")}</span>
+          <span className="tabular-nums">{Math.round(progress)}%</span>
+        </div>
+        <Progress value={progress} className="h-1.5 bg-white/6" />
+        <p className="text-center text-xs text-white/35">
+          {t("previewLoading")}
+        </p>
+      </div>
     </div>
   );
 }
@@ -192,14 +199,64 @@ function ErrorState({
 // ─── Empty state ───────────────────────────────────────────────────────────────
 function EmptyState() {
   const t = useTranslations("productStudio");
+  const activeProductFlow = useStudioStore((s) => s.activeProductFlow);
+  const proSampleSrc = PRO_SAMPLE_IMAGES[activeProductFlow];
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-      <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-8">
-        <ImageIcon className="mx-auto mb-3 h-10 w-10 text-white/15" />
-        <p className="text-sm font-medium text-white/30">{t("previewEmpty")}</p>
-        <p className="mt-1 text-xs text-white/20">{t("previewEmptyHint")}</p>
+    <div className="flex h-full flex-col items-center justify-center gap-5 p-8">
+      {/* Sample output card — only shown when a custom image is set */}
+      {proSampleSrc && (
+        <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-white/3 shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
+          <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-lg border border-white/12 bg-black/60 px-2.5 py-1 backdrop-blur-md">
+            <ImageIcon className="h-3 w-3 text-indigo-300/80" aria-hidden />
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/60">
+              {t("sampleOutputLabel")}
+            </span>
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={proSampleSrc}
+            alt={t("sampleOutputLabel")}
+            className="h-auto w-full opacity-60"
+          />
+        </div>
+      )}
+      <div className="text-center">
+        <p className="text-sm font-medium text-white/50">{t("previewEmpty")}</p>
+        <p className="mt-1 text-xs text-white/25">{t("previewEmptyHint")}</p>
       </div>
     </div>
+  );
+}
+
+// ─── Action button (icon only, shows label on hover) ───────────────────────────
+function ActionBtn({
+  onClick,
+  icon,
+  label,
+  highlight,
+}: {
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  highlight?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      className={cn(
+        "group relative flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition-all duration-200",
+        highlight
+          ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-200 hover:bg-indigo-500/20"
+          : "border-white/8 bg-white/4 text-white/50 hover:border-white/15 hover:bg-white/8 hover:text-white/80",
+      )}
+    >
+      <span className="shrink-0">{icon}</span>
+      <span className="max-w-0 overflow-hidden whitespace-nowrap text-xs transition-all duration-200 group-hover:max-w-30">
+        {label}
+      </span>
+    </button>
   );
 }
 
@@ -215,53 +272,77 @@ function SingleResult({
 }) {
   const t = useTranslations("productStudio");
   const isVideo = activeFlow === "photo-to-video";
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+
   return (
-    <div className="flex h-full flex-col gap-3 p-4">
-      <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-black/40">
-        {isVideo ? (
-          <video
-            src={result.url}
-            controls
-            className="h-full w-full object-contain"
-          />
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={result.url}
-            alt="Generated result"
-            className="h-full w-full object-contain"
-          />
-        )}
-      </div>
-      {/* Actions */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() =>
-            downloadUrl(
-              result.url,
-              `aigencys-${activeFlow}-${Date.now()}.${isVideo ? "mp4" : "webp"}`,
-            )
-          }
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-2.5 text-sm text-white/70 transition hover:bg-white/9"
-        >
+    <>
+      <div className="flex flex-col items-center justify-center gap-5 p-6 h-full">
+        {/* Result card — same style as sample output card */}
+        <div className="relative w-full max-w-sm lg:max-w-[calc((100vh_-_280px)*0.75)] overflow-hidden rounded-2xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
           {isVideo ? (
-            <VideoIcon className="h-4 w-4" />
+            <video src={result.url} controls className="w-full h-auto" />
           ) : (
-            <Download className="h-4 w-4" />
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={result.url}
+              alt="Generated result"
+              className="w-full h-auto"
+            />
           )}
-          {t("previewDownload")}
-        </button>
-        <button
-          type="button"
-          onClick={onRegenerate}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-2.5 text-sm text-white/70 transition hover:bg-white/9"
-        >
-          <RefreshCw className="h-4 w-4" />
-          {t("previewRegenerate")}
-        </button>
+        </div>
+
+        {/* Action bar */}
+        <div className="flex items-center gap-2">
+          {isVideo ? (
+            <ActionBtn
+              onClick={() =>
+                void downloadUrl(
+                  result.url,
+                  `aigencys-${activeFlow}-${Date.now()}.mp4`,
+                )
+              }
+              icon={<VideoIcon className="h-4 w-4" />}
+              label={t("previewDownload")}
+            />
+          ) : (
+            <DownloadFormatMenu
+              url={result.url}
+              basename={`aigencys-${activeFlow}`}
+              label={t("previewDownload")}
+            />
+          )}
+          <ActionBtn
+            onClick={onRegenerate}
+            icon={<RefreshCw className="h-4 w-4" />}
+            label={t("previewRegenerate")}
+          />
+          <ActionBtn
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(result.url);
+                toast.success(t("previewCopy"));
+              } catch {
+                toast.error("Copy failed");
+              }
+            }}
+            icon={<Copy className="h-4 w-4" />}
+            label={t("previewCopy")}
+          />
+          <ActionBtn
+            onClick={() => setScheduleOpen(true)}
+            icon={<CalendarPlus className="h-4 w-4" />}
+            label={t("previewSchedule")}
+            highlight
+          />
+        </div>
       </div>
-    </div>
+
+      <ScheduleModal
+        open={scheduleOpen}
+        onClose={() => setScheduleOpen(false)}
+        imageUrl={result.url}
+      />
+    </>
   );
 }
 
@@ -277,21 +358,22 @@ function MultiResult({
   const ANGLE_LABELS = [t("angleFront"), t("angle45"), t("angleProfile")];
   const [primaryIdx, setPrimaryIdx] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const primary = results[primaryIdx];
 
   return (
     <>
-      <div className="flex h-full flex-col gap-3 p-4">
-        {/* Primary large image */}
+      <div className="flex flex-col items-center justify-center gap-5 p-6 h-full">
+        {/* Primary card */}
         <div
-          className="relative min-h-0 flex-1 cursor-zoom-in overflow-hidden rounded-2xl bg-black/40"
+          className="relative w-full max-w-sm lg:max-w-[calc((100vh_-_280px)*0.75)] cursor-zoom-in overflow-hidden rounded-2xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
           onClick={() => setLightboxOpen(true)}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={primary.url}
             alt={ANGLE_LABELS[primaryIdx]}
-            className="h-full w-full object-contain"
+            className="w-full h-auto"
           />
           <div className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-black/50 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
             {ANGLE_LABELS[primaryIdx] ?? `Görsel ${primaryIdx + 1}`}
@@ -299,7 +381,7 @@ function MultiResult({
         </div>
 
         {/* Thumbnail strip */}
-        <div className="flex gap-2">
+        <div className="flex w-full max-w-sm lg:max-w-[calc((100vh_-_280px)*0.75)] gap-2">
           {results.map((r, i) => (
             <button
               key={i}
@@ -325,29 +407,36 @@ function MultiResult({
           ))}
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() =>
-              downloadUrl(
-                primary.url,
-                `aigencys-angle-${primaryIdx}-${Date.now()}.webp`,
-              )
-            }
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-2.5 text-sm text-white/70 transition hover:bg-white/9"
-          >
-            <Download className="h-4 w-4" />
-            {t("previewDownloadSelected")}
-          </button>
-          <button
-            type="button"
+        {/* Action bar */}
+        <div className="flex items-center gap-2">
+          <DownloadFormatMenu
+            url={primary.url}
+            basename={`aigencys-angle-${primaryIdx}`}
+            label={t("previewDownloadSelected")}
+          />
+          <ActionBtn
             onClick={onRegenerate}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-2.5 text-sm text-white/70 transition hover:bg-white/9"
-          >
-            <RefreshCw className="h-4 w-4" />
-            {t("previewRegenerate")}
-          </button>
+            icon={<RefreshCw className="h-4 w-4" />}
+            label={t("previewRegenerate")}
+          />
+          <ActionBtn
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(primary.url);
+                toast.success(t("previewCopy"));
+              } catch {
+                toast.error("Copy failed");
+              }
+            }}
+            icon={<Copy className="h-4 w-4" />}
+            label={t("previewCopy")}
+          />
+          <ActionBtn
+            onClick={() => setScheduleOpen(true)}
+            icon={<CalendarPlus className="h-4 w-4" />}
+            label={t("previewSchedule")}
+            highlight
+          />
         </div>
       </div>
 
@@ -358,6 +447,12 @@ function MultiResult({
           onClose={() => setLightboxOpen(false)}
         />
       )}
+
+      <ScheduleModal
+        open={scheduleOpen}
+        onClose={() => setScheduleOpen(false)}
+        imageUrl={primary.url}
+      />
     </>
   );
 }
@@ -380,7 +475,7 @@ export function ProductPreviewPanel({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "glass-panel flex min-h-80 flex-col overflow-hidden",
+        "glass-panel flex min-h-80 max-h-[calc(100vh-8rem)] flex-col overflow-hidden",
         className,
       )}
     >

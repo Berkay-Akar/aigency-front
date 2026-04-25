@@ -75,6 +75,7 @@ export function ProductSwapForm() {
       <UploadDropzone
         label={t("productToInsert")}
         previewUrl={primaryUrl}
+        exampleSrc="/sample-inputs/swap-product.jpeg"
         onFile={(f) => {
           const prev = primaryUrl;
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
@@ -89,6 +90,7 @@ export function ProductSwapForm() {
       <UploadDropzone
         label={t("existingScene")}
         previewUrl={productSceneImageUrl}
+        exampleSrc="/sample-inputs/swap-reference.jpg"
         onFile={(f) => {
           const prev = productSceneImageUrl;
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);

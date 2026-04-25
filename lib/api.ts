@@ -352,6 +352,10 @@ export interface Job {
   };
   failedReason?: string;
   error?: string;
+  generation?: {
+    status?: string;
+    resultUrl?: string;
+  };
 }
 
 export interface PresetPromptsResponse {
@@ -365,7 +369,16 @@ export const aiApi = {
   },
   getJob: async (jobId: string) => {
     const res = await api.get<unknown>(`/jobs/${jobId}`);
-    return unwrapApiData<Job>(res.data) as Job;
+    const job = unwrapApiData<Job>(res.data) as Job;
+    // Backend may return status in uppercase (e.g. "FAILED", "COMPLETED").
+    // Normalize to lowercase and fall back to the nested generation.status.
+    const rawStatus = (
+      job.status ??
+      job.generation?.status ??
+      ""
+    ).toLowerCase();
+    job.status = (rawStatus || "queued") as JobStatus;
+    return job;
   },
   getPresetPrompts: async () => {
     const res = await api.get<unknown>("/ai/preset-prompts");
@@ -615,6 +628,29 @@ export const socialApi = {
 
 // ─── Assets ───────────────────────────────────────────────────────────────────
 
+export interface GenerationJob {
+  id: string;
+  mode: string;
+  jobType: string;
+  modelTier: string;
+  modelId: string;
+  falModelId: string | null;
+  prompt: string;
+  enhancePrompt: boolean;
+  aspectRatio: string | null;
+  customWidth: number | null;
+  customHeight: number | null;
+  outputFormat: string | null;
+  imageUrls?: string[];
+  duration: number | null;
+  platform: string | null;
+  tone: string | null;
+  modelDetails: unknown | null;
+  customization: Record<string, unknown> | null;
+  creditsCost: number;
+  status: string;
+}
+
 export interface Asset {
   id: string;
   url: string;
@@ -622,6 +658,7 @@ export interface Asset {
   platform?: string;
   caption?: string;
   createdAt?: string;
+  generationJob?: GenerationJob;
 }
 
 export interface AssetsPagination {

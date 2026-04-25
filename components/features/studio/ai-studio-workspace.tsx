@@ -7,6 +7,7 @@ import { BuyCreditsModal } from "@/components/features/billing/buy-credits-modal
 import { useJobPolling } from "@/hooks/use-job-polling";
 import { useStudioGenerationErrorToast } from "@/hooks/use-studio-generation-error-toast";
 import { useWorkspaceData } from "@/hooks/use-workspace-data";
+import { useFaviconStatus } from "@/hooks/use-favicon-status";
 import { ControlPanel } from "./control-panel";
 import { PreviewPanel } from "./preview-panel";
 import { RecentGenerationsList } from "./recent-generations-list";
@@ -15,6 +16,7 @@ import { MobileControlDrawer } from "./mobile-control-drawer";
 export function AiStudioWorkspace() {
   useWorkspaceData();
   useJobPolling();
+  useFaviconStatus();
 
   const t = useTranslations("studio");
   const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
@@ -28,7 +30,7 @@ export function AiStudioWorkspace() {
       <BuyCreditsModal open={buyCreditsOpen} onOpenChange={setBuyCreditsOpen} />
 
       {/* ── Left: controls ───────────────────────────────────────────── */}
-      <aside className="hidden w-full shrink-0 lg:block lg:w-75 xl:w-85">
+      <aside className="hidden w-full shrink-0 lg:block lg:w-90 xl:w-100">
         <ControlPanel className="h-full max-h-[calc(100vh-60px-52px-2.5rem)]" />
       </aside>
 
@@ -38,12 +40,12 @@ export function AiStudioWorkspace() {
       </div>
 
       {/* ── Right: recent generations ────────────────────────────────── */}
-      <aside className="hidden w-55 shrink-0 xl:block xl:w-60">
+      {/* <aside className="hidden w-55 shrink-0 xl:block xl:w-60">
         <RecentGenerationsList
           vertical
           className="h-full max-h-[calc(100vh-60px-52px-2.5rem)]"
         />
-      </aside>
+      </aside> */}
 
       {/* ── Mobile drawer ────────────────────────────────────────────── */}
       <MobileControlDrawer

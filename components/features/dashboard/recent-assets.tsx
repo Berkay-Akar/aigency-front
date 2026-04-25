@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Download, ExternalLink, Instagram, ArrowRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { assetsApi } from "@/lib/api";
+import { assetsApi, type Asset } from "@/lib/api";
+import { downloadAsBlob } from "@/lib/utils";
+import { useStudioStore } from "@/store/studio-store";
+import { toast } from "sonner";
 
 const PLATFORM_ICONS: Record<string, React.ReactNode> = {
   instagram: <Instagram className="w-3 h-3" />,
@@ -25,68 +29,92 @@ export function RecentAssets() {
     queryFn: () => assetsApi.list(1, 6),
   });
 
+  const router = useRouter();
+  const loadFromAsset = useStudioStore((s) => s.loadFromAsset);
   const assets = data?.assets ?? [];
 
+  function handleOpenInStudio(asset: Asset) {
+    loadFromAsset(asset);
+    router.push("/studio");
+  }
+
+  async function handleDownload(asset: Asset) {
+    const ext = asset.url.split(".").pop()?.split("?")[0] ?? "png";
+    try {
+      await downloadAsBlob(
+        asset.url,
+        `aigencys-${asset.id.slice(0, 8)}.${ext}`,
+      );
+    } catch {
+      toast.error("Download failed");
+    }
+  }
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-white/40 uppercase tracking-wider">
-          Recent Assets
-        </h2>
-        <Link
-          href="/assets"
-          className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-        >
-          View all
-          <ArrowRight className="w-3 h-3" />
-        </Link>
-      </div>
+    <>
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-white/40 uppercase tracking-wider">
+            Recent Assets
+          </h2>
+          <Link
+            href="/assets"
+            className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+          >
+            View all
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
 
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-        {isLoading
-          ? Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="skeleton aspect-square rounded-2xl"
-              />
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+          {isLoading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="skeleton aspect-square rounded-2xl" />
             ))
-          : assets.length > 0
-            ? assets.map((asset) => (
-                <div
-                  key={asset.id}
-                  className="group relative aspect-square rounded-2xl overflow-hidden"
-                >
-                  <img
-                    src={asset.url}
-                    alt={asset.caption ?? ""}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
+          ) : assets.length > 0 ? (
+            assets.map((asset) => (
+              <div
+                key={asset.id}
+                className="group relative aspect-square rounded-2xl overflow-hidden"
+              >
+                <img
+                  src={asset.url}
+                  alt={asset.caption ?? ""}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
 
-                  {asset.platform ? (
-                    <div className="absolute top-2 left-2 w-5 h-5 rounded-lg bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70">
-                      {PLATFORM_ICONS[asset.platform] ?? null}
-                    </div>
-                  ) : null}
-
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <button className="w-7 h-7 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
-                      <Download className="w-3 h-3" />
-                    </button>
-                    <Link
-                      href="/studio"
-                      className="w-7 h-7 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                    </Link>
+                {asset.platform ? (
+                  <div className="absolute top-2 left-2 w-5 h-5 rounded-lg bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70">
+                    {PLATFORM_ICONS[asset.platform] ?? null}
                   </div>
+                ) : null}
+
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleDownload(asset)}
+                    className="w-7 h-7 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                  >
+                    <Download className="w-3 h-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenInStudio(asset)}
+                    title="Stüdyoda Gör"
+                    className="w-7 h-7 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
                 </div>
-              ))
-            : (
-                <div className="col-span-6 py-8 text-center text-white/30 text-sm">
-                  No assets yet — generate something in Studio.
-                </div>
-              )}
+              </div>
+            ))
+          ) : (
+            <div className="col-span-6 py-8 text-center text-white/30 text-sm">
+              No assets yet — generate something in Studio.
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

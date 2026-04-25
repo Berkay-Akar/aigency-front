@@ -7,7 +7,9 @@ import {
   type AiGenerationMode,
   type AiPlatform,
   type AiTone,
+  type Asset,
   type GeneratePayload,
+  type GenerationJob,
   type JobStatus,
   type ModelPhotoOptions,
   type OutputFormat,
@@ -239,6 +241,7 @@ interface StudioState {
   startProductGeneration: () => Promise<string[] | null>;
   getProductCreditEstimate: () => number;
   resetProductState: () => void;
+  loadFromAsset: (asset: Asset) => void;
 }
 
 const MOCK_RESULT =
@@ -341,7 +344,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   falModelId: defaultFalModelId(DEFAULT_STUDIO_MODE, DEFAULT_STUDIO_PRICE_TIER),
   prompt: "",
   enhancePrompt: false,
-  aspectRatio: "square",
+  aspectRatio: "portrait",
   outputFormat: "png",
   ...initialRefs,
   duration: 5,
@@ -367,6 +370,9 @@ export const useStudioStore = create<StudioState>((set, get) => ({
         ...initialJob,
         result: null,
         generationError: null,
+        mainReferenceUrl: null,
+        styleReferenceUrl: null,
+        backgroundReferenceUrl: null,
       };
     }),
   setStudioPriceTier: (studioPriceTier) =>
@@ -493,7 +499,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       ),
       prompt: "",
       enhancePrompt: false,
-      aspectRatio: "square",
+      aspectRatio: "portrait",
       outputFormat: "png",
       ...initialRefs,
       duration: 5,
@@ -533,10 +539,10 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       .join(". ");
     if (body) chunks.push(body);
 
-    chunks.push(
-      `Style strength ~${s.styleStrength}%. Prompt adherence ~${s.promptStrength}%.`,
-    );
-    chunks.push(`Background mode: ${s.backgroundMode}.`);
+    // chunks.push(
+    //   `Style strength ~${s.styleStrength}%. Prompt adherence ~${s.promptStrength}%.`,
+    // );
+    // chunks.push(`Background mode: ${s.backgroundMode}.`);
 
     if (s.negativePrompt.trim()) {
       chunks.push(`Avoid: ${s.negativePrompt.trim()}`);
@@ -875,6 +881,84 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       isProductGenerating: false,
       productLastCreditsCost: null,
     }),
+
+  // ─── Load asset into studio form ─────────────────────────────────────────
+  loadFromAsset: (asset) => {
+    const job: GenerationJob | undefined = asset.generationJob;
+    const CREATIVE_MODES: AiGenerationMode[] = [
+      "image-to-image",
+      "text-to-image",
+      "image-to-video",
+    ];
+    const PRODUCT_JOB_TYPES: Record<string, ProductFlow> = {
+      GHOST_MANNEQUIN: "ghost-mannequin",
+      MODEL_PHOTO: "model-photo",
+      PRODUCT_ANGLES: "product-angles",
+      PRODUCT_REFERENCE: "product-reference",
+      PRODUCT_SWAP: "product-swap",
+      PHOTO_TO_VIDEO: "photo-to-video",
+    };
+
+    const jobTypeUpper = (job?.jobType ?? "").toUpperCase();
+    const productFlow = PRODUCT_JOB_TYPES[jobTypeUpper];
+
+    if (productFlow) {
+      set({
+        studioTab: "product",
+        activeProductFlow: productFlow,
+        productCustomPrompt: job?.prompt ?? "",
+        productImageUrls: job?.imageUrls ?? [],
+        productResults: [{ url: asset.url, assetId: asset.id }],
+        productJobIds: [],
+        productError: null,
+        productProgress: 0,
+        isProductGenerating: false,
+        ...(job?.customization && productFlow === "ghost-mannequin"
+          ? {
+              ghostQuality: ((job.customization as Record<string, string>)
+                .quality === "premium"
+                ? "premium"
+                : "standard") as "standard" | "premium",
+              ghostBackgroundColor:
+                (job.customization as Record<string, string>).backgroundColor ??
+                "white",
+            }
+          : {}),
+      });
+    } else {
+      const mode = CREATIVE_MODES.includes(job?.mode as AiGenerationMode)
+        ? (job?.mode as AiGenerationMode)
+        : "image-to-image";
+      const validAspectRatios = ["portrait", "landscape", "square"] as const;
+      const aspectRatio = validAspectRatios.includes(
+        job?.aspectRatio as (typeof validAspectRatios)[number],
+      )
+        ? (job?.aspectRatio as "portrait" | "landscape" | "square")
+        : "portrait";
+      const validFormats = ["png", "jpeg", "webp"] as const;
+      const outputFormat = validFormats.includes(
+        job?.outputFormat as (typeof validFormats)[number],
+      )
+        ? (job?.outputFormat as "png" | "jpeg" | "webp")
+        : "png";
+
+      set({
+        studioTab: "creative",
+        generationMode: mode,
+        prompt: job?.prompt ?? "",
+        aspectRatio,
+        outputFormat,
+        platform: (job?.platform as AiPlatform | null) ?? "general",
+        tone: (job?.tone as AiTone | null) ?? "professional",
+        ...initialJob,
+        result: { url: asset.url, assetId: asset.id },
+        generationError: null,
+        mainReferenceUrl: job?.imageUrls?.[0] ?? null,
+        styleReferenceUrl: null,
+        backgroundReferenceUrl: null,
+      });
+    }
+  },
 
   // ─── Product Studio: start generation ────────────────────────────────────
   startProductGeneration: async () => {

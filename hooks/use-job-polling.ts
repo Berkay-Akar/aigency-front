@@ -18,6 +18,8 @@ function jobLabel(mode: string) {
  * Polls GET /jobs/:jobId while a job is in progress.
  * Updates studio store when complete or failed.
  */
+const SESSION_JOB_KEY = "aigencys-job-id";
+
 export function useJobPolling() {
   const t = useTranslations("studio");
   const jobId = useStudioStore((s) => s.jobId);
@@ -27,6 +29,29 @@ export function useJobPolling() {
   const setResult = useStudioStore((s) => s.setResult);
   const setGenerationError = useStudioStore((s) => s.setGenerationError);
   const toastedRef = useRef<string | null>(null);
+
+  // On mount: restore an in-progress job from sessionStorage so polling
+  // resumes after a page refresh.
+  useEffect(() => {
+    const saved = sessionStorage.getItem(SESSION_JOB_KEY);
+    if (saved && !useStudioStore.getState().jobId) {
+      useStudioStore.setState({
+        jobId: saved,
+        jobStatus: "processing",
+        isGenerating: true,
+        progress: 0,
+      });
+    }
+  }, []);
+
+  // Persist active jobId so a page refresh can recover it.
+  useEffect(() => {
+    if (jobId && (jobStatus === "queued" || jobStatus === "processing")) {
+      sessionStorage.setItem(SESSION_JOB_KEY, jobId);
+    } else {
+      sessionStorage.removeItem(SESSION_JOB_KEY);
+    }
+  }, [jobId, jobStatus]);
 
   const isActive =
     !!jobId && (jobStatus === "queued" || jobStatus === "processing");

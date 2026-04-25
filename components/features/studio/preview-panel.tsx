@@ -1,23 +1,77 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Download,
   Sparkles,
   Copy,
   RefreshCw,
-  Layers,
   CalendarPlus,
   ImageIcon,
+  Film,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { useStudioStore } from "@/store/studio-store";
+import type { AiGenerationMode } from "@/lib/api";
 import { ScheduleModal } from "./schedule-modal";
+import { DownloadFormatMenu } from "./download-format-menu";
 import { cn } from "@/lib/utils";
+
+type FastSampleConfig =
+  | { type: "single"; src: string }
+  | { type: "combine"; output: string }
+  | { type: "video"; output: string }
+  | null;
+
+// Drop files in public/sample-inputs/ (form placeholders) and public/sample-outputs/ (preview).
+const FAST_SAMPLE_IMAGES: Record<AiGenerationMode, FastSampleConfig> = {
+  "text-to-image": {
+    type: "single",
+    src: "/sample-outputs/text-to-image-image.png",
+  },
+  "image-to-image": {
+    type: "combine",
+    output: "/sample-outputs/image-to-image-result.png",
+  },
+  "image-to-video": {
+    type: "video",
+
+    output: "/sample-outputs/image-to-video-fast.mp4",
+  },
+};
+
+function ResultAction({
+  onClick,
+  icon,
+  label,
+  highlight,
+}: {
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  highlight?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      className={cn(
+        "group flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition-all duration-200",
+        highlight
+          ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-200 hover:bg-indigo-500/20"
+          : "border-white/8 bg-white/4 text-white/50 hover:border-white/15 hover:bg-white/8 hover:text-white/80",
+      )}
+    >
+      <span className="shrink-0">{icon}</span>
+      <span className="max-w-0 overflow-hidden whitespace-nowrap text-xs transition-all duration-200 group-hover:max-w-30">
+        {label}
+      </span>
+    </button>
+  );
+}
 
 export function PreviewPanel({ className }: { className?: string }) {
   const t = useTranslations("studio");
@@ -28,10 +82,11 @@ export function PreviewPanel({ className }: { className?: string }) {
   const isGenerating = useStudioStore((s) => s.isGenerating);
   const progress = useStudioStore((s) => s.progress);
   const prompt = useStudioStore((s) => s.prompt);
-  const composedPreview = useStudioStore((s) => s.buildComposedPrompt());
   const startGeneration = useStudioStore((s) => s.startGeneration);
   const enhancePromptWithApi = useStudioStore((s) => s.enhancePromptWithApi);
+  const generationMode = useStudioStore((s) => s.generationMode);
   const showEmpty = !isGenerating && !result;
+  const fastSampleConfig = FAST_SAMPLE_IMAGES[generationMode];
 
   async function handleCopyPrompt() {
     const text = useStudioStore.getState().buildComposedPrompt();
@@ -43,28 +98,11 @@ export function PreviewPanel({ className }: { className?: string }) {
     }
   }
 
-  async function handleDownload() {
-    if (!result?.url) return;
-    try {
-      const a = document.createElement("a");
-      a.href = result.url;
-      a.download = `aigencys-${result.assetId.slice(0, 8)}.png`;
-      a.target = "_blank";
-      a.rel = "noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      toast.success(t("downloadStarted"));
-    } catch {
-      toast.error(t("errorTitle"));
-    }
-  }
-
   return (
     <div
       className={cn(
         "flex min-h-0 flex-1 flex-col rounded-3xl border border-white/10 bg-[rgb(10_10_12/0.65)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_40px_rgba(0,0,0,0.25)] backdrop-blur-xl",
-        className
+        className,
       )}
     >
       <div className="relative flex min-h-[min(70vh,720px)] flex-1 flex-col p-4 md:p-6">
@@ -75,14 +113,86 @@ export function PreviewPanel({ className }: { className?: string }) {
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
-              className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center"
+              className="flex flex-1 flex-col items-center justify-center gap-5 px-6"
             >
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04]">
-                <ImageIcon className="h-8 w-8 text-white/25" aria-hidden />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-white/90">{t("emptyPreviewTitle")}</h3>
-                <p className="mt-2 max-w-sm text-sm text-white/40">{t("emptyPreviewDesc")}</p>
+              {/* Sample cards — only shown when configured */}
+              {fastSampleConfig?.type === "single" && (
+                <div className="flex w-full max-w-sm lg:max-w-[calc((100vh_-_260px)*0.75)] flex-col items-center gap-3">
+                  <div className="relative w-full aspect-[3/4] overflow-hidden rounded-2xl border border-white/10 bg-white/3 shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
+                    <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-lg border border-white/12 bg-black/60 px-2.5 py-1 backdrop-blur-md">
+                      <ImageIcon
+                        className="h-3 w-3 text-indigo-300/80"
+                        aria-hidden
+                      />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-white/60">
+                        {t("sampleOutputLabel")}
+                      </span>
+                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={fastSampleConfig.src}
+                      alt={t("sampleOutputLabel")}
+                      className="absolute inset-0 h-full w-full object-cover opacity-60"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {fastSampleConfig?.type === "combine" && (
+                <div className="flex w-full max-w-sm lg:max-w-[calc((100vh_-_260px)*0.75)] flex-col items-center gap-3">
+                  {/* Output card */}
+                  <div className="relative w-full aspect-[3/4] overflow-hidden rounded-2xl border border-white/10 bg-white/3 shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
+                    <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-lg border border-white/12 bg-black/60 px-2.5 py-1 backdrop-blur-md">
+                      <ImageIcon
+                        className="h-3 w-3 text-indigo-300/80"
+                        aria-hidden
+                      />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-white/60">
+                        {t("sampleOutputLabel")}
+                      </span>
+                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={fastSampleConfig.output}
+                      alt={t("sampleOutputLabel")}
+                      className="absolute inset-0 h-full w-full object-cover opacity-60"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {fastSampleConfig?.type === "video" && (
+                <div className="flex w-full max-w-sm lg:max-w-[calc((100vh_-_260px)*0.75)] flex-col items-center gap-3">
+                  <div className="relative w-full aspect-[3/4] overflow-hidden rounded-2xl border border-white/10 bg-white/3 shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
+                    <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-lg border border-white/12 bg-black/60 px-2.5 py-1 backdrop-blur-md">
+                      <Film
+                        className="h-3 w-3 text-indigo-300/80"
+                        aria-hidden
+                      />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-white/60">
+                        {t("sampleOutputLabel")}
+                      </span>
+                    </div>
+                    <video
+                      src={fastSampleConfig.output}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="absolute inset-0 h-full w-full object-cover opacity-60"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Helper text */}
+              <div className="text-center">
+                <p className="text-sm font-medium text-white/50">
+                  {t("emptyPreviewTitle")}
+                </p>
+                <p className="mt-1 text-xs text-white/25">
+                  {t("emptyPreviewDesc")}
+                </p>
               </div>
             </motion.div>
           ) : null}
@@ -95,14 +205,21 @@ export function PreviewPanel({ className }: { className?: string }) {
               exit={{ opacity: 0 }}
               className="flex flex-1 flex-col items-center justify-center gap-6 px-6"
             >
-              <div className="relative h-48 w-full max-w-md overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03]">
+              <div className="relative w-full max-w-sm lg:max-w-[calc((100vh_-_260px)*0.75)] aspect-[3/4] overflow-hidden rounded-2xl border border-white/8 bg-white/3">
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent"
+                  className="absolute inset-0 bg-linear-to-r from-transparent via-indigo-500/20 to-transparent"
                   animate={{ x: ["-100%", "100%"] }}
-                  transition={{ duration: 1.8, repeat: Infinity, ease: "linear" }}
+                  transition={{
+                    duration: 1.8,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Sparkles className="h-10 w-10 text-indigo-400/80" aria-hidden />
+                  <Sparkles
+                    className="h-10 w-10 text-indigo-400/80"
+                    aria-hidden
+                  />
                 </div>
               </div>
               <div className="w-full max-w-md space-y-2">
@@ -110,8 +227,10 @@ export function PreviewPanel({ className }: { className?: string }) {
                   <span>{t("loadingTitle")}</span>
                   <span className="tabular-nums">{Math.round(progress)}%</span>
                 </div>
-                <Progress value={progress} className="h-1.5 bg-white/[0.06]" />
-                <p className="text-center text-xs text-white/35">{t("loadingHint")}</p>
+                <Progress value={progress} className="h-1.5 bg-white/6" />
+                <p className="text-center text-xs text-white/35">
+                  {t("loadingHint")}
+                </p>
               </div>
             </motion.div>
           ) : null}
@@ -122,84 +241,49 @@ export function PreviewPanel({ className }: { className?: string }) {
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-1 flex-col gap-4"
+              className="flex flex-1 flex-col items-center justify-center gap-5 px-6"
             >
-              <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/[0.08] bg-black/40">
-                <img
-                  src={result.url}
-                  alt=""
-                  className="h-full w-full max-h-[min(62vh,640px)] object-contain"
-                />
+              <div className="flex w-full max-w-sm lg:max-w-[calc((100vh_-_260px)*0.75)] flex-col items-center gap-3">
+                {/* Result card */}
+                <div className="relative w-full overflow-hidden rounded-2xl border border-white/10 bg-white/3 shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={result.url} alt="" className="w-full h-auto" />
+                </div>
+
+                {/* Action bar */}
+                <div className="flex items-center gap-2">
+                  <DownloadFormatMenu
+                    url={result.url}
+                    basename={`aigencys-${result.assetId.slice(0, 8)}`}
+                    label={tg("download")}
+                  />
+                  <ResultAction
+                    onClick={() => void startGeneration()}
+                    icon={<RefreshCw className="h-4 w-4" />}
+                    label={t("regenerate")}
+                  />
+                  <ResultAction
+                    onClick={() => void handleCopyPrompt()}
+                    icon={<Copy className="h-4 w-4" />}
+                    label={t("copyPrompt")}
+                  />
+                  <ResultAction
+                    onClick={async () => {
+                      const ok = await enhancePromptWithApi();
+                      if (ok) toast.success(t("promptEnhanced"));
+                      else toast.error(t("promptEnhanceFailed"));
+                    }}
+                    icon={<Sparkles className="h-4 w-4" />}
+                    label={t("enhancePrompt")}
+                  />
+                  <ResultAction
+                    onClick={() => setScheduleOpen(true)}
+                    icon={<CalendarPlus className="h-4 w-4" />}
+                    label={t("schedulePost")}
+                    highlight
+                  />
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => void handleDownload()}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
-                >
-                  <Download className="h-3.5 w-3.5" aria-hidden />
-                  {tg("download")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void startGeneration()}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-                  {t("regenerate")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleCopyPrompt()}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
-                >
-                  <Copy className="h-3.5 w-3.5" aria-hidden />
-                  {t("copyPrompt")}
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const ok = await enhancePromptWithApi();
-                    if (ok) toast.success(t("promptEnhanced"));
-                    else toast.error(t("promptEnhanceFailed"));
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
-                >
-                  <Sparkles className="h-3.5 w-3.5" aria-hidden />
-                  {t("enhancePrompt")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    toast.message(t("variationsStarted"));
-                    void startGeneration();
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
-                >
-                  <Layers className="h-3.5 w-3.5" aria-hidden />
-                  {t("variations")}
-                </button>
-                <Link
-                  href={`/assets?highlight=${encodeURIComponent(result.assetId)}`}
-                  className="inline-flex items-center gap-2 rounded-xl border border-indigo-500/25 bg-indigo-500/10 px-3 py-2 text-xs font-medium text-indigo-200 transition-colors hover:bg-indigo-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
-                >
-                  {t("openAssets")}
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setScheduleOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
-                >
-                  <CalendarPlus className="h-3.5 w-3.5" aria-hidden />
-                  {t("schedulePost")}
-                </button>
-              </div>
-              {composedPreview.length >= 3 ? (
-                <p className="line-clamp-2 text-[11px] text-white/30">
-                  <span className="text-white/45">{tg("prompt")}: </span>
-                  {composedPreview}
-                </p>
-              ) : null}
             </motion.div>
           ) : null}
         </AnimatePresence>

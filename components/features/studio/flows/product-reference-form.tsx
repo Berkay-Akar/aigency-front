@@ -85,6 +85,7 @@ export function ProductReferenceForm() {
       <UploadDropzone
         label={t("productImage")}
         previewUrl={primaryUrl}
+        exampleSrc="/sample-inputs/image-to-image-pic1.jpg"
         onFile={(f) => {
           const prev = primaryUrl;
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
@@ -99,6 +100,7 @@ export function ProductReferenceForm() {
       <UploadDropzone
         label={t("referenceImage")}
         previewUrl={productReferenceImageUrl}
+        exampleSrc="/sample-inputs/image-to-image-pic2.jpg"
         onFile={(f) => {
           const prev = productReferenceImageUrl;
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
