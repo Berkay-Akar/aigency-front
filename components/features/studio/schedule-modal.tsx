@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,15 +17,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { postsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
-const schema = z.object({
-  caption: z.string().min(1, "Açıklama gerekli"),
+// Base schema used only for type inference — messages are injected at runtime.
+const _baseSchema = z.object({
+  caption: z.string().min(1),
   hashtags: z.string(),
   platform: z.enum(["instagram", "tiktok"]),
-  scheduledAt: z.string().min(1, "Tarih ve saat gerekli"),
+  scheduledAt: z.string().min(1),
 });
-
-type FormData = z.infer<typeof schema>;
+type FormData = z.infer<typeof _baseSchema>;
 
 const PLATFORMS = [
   { id: "instagram" as const, label: "Instagram" },
@@ -53,9 +54,24 @@ export function ScheduleModal({
   defaultPlatform = "instagram",
 }: ScheduleModalProps) {
   const queryClient = useQueryClient();
+  const t = useTranslations("scheduleModal");
+  const tStudio = useTranslations("studio");
+  const tCommon = useTranslations("common");
   const [selectedPlatform, setSelectedPlatform] = useState<
     "instagram" | "tiktok"
   >("instagram");
+
+  // Schema is built inside the component so zod validation messages are i18n-aware.
+  const schema = useMemo(
+    () =>
+      z.object({
+        caption: z.string().min(1, t("captionRequired")),
+        hashtags: z.string(),
+        platform: z.enum(["instagram", "tiktok"]),
+        scheduledAt: z.string().min(1, t("dateRequired")),
+      }),
+    [t],
+  );
 
   const {
     register,
@@ -77,7 +93,7 @@ export function ScheduleModal({
   const mutation = useMutation({
     mutationFn: (data: FormData) => {
       if (!assetId) {
-        toast.error("Varlık kimliği gerekli. Önce Studio’da üretin veya kütüphaneden seçin.");
+        toast.error(t("missingAssetError"));
         return Promise.reject(new Error("Missing assetId"));
       }
       const hashtags = data.hashtags
@@ -87,7 +103,7 @@ export function ScheduleModal({
           data.hashtags
             .split(/\s+/)
             .filter((h) => !h.startsWith("#") && h.length > 0)
-            .map((h) => `#${h}`)
+            .map((h) => `#${h}`),
         );
       return postsApi.schedule({
         assetId,
@@ -100,12 +116,12 @@ export function ScheduleModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["calendar"] });
-      toast.success("Gönderi planlandı.");
+      toast.success(t("success"));
       reset();
       onClose();
     },
     onError: () => {
-      toast.error("Planlama başarısız. Tekrar deneyin.");
+      toast.error(t("error"));
     },
   });
 
@@ -116,19 +132,13 @@ export function ScheduleModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="bg-[#111] border-white/[0.08] rounded-3xl max-w-md p-0 overflow-hidden shadow-2xl">
+      <DialogContent className="dark:bg-[#111] bg-background border-border rounded-3xl max-w-md p-0 overflow-hidden shadow-2xl">
         <DialogHeader className="px-6 pt-6 pb-0">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-base font-semibold text-white flex items-center gap-2">
+            <DialogTitle className="text-base font-semibold text-foreground flex items-center gap-2">
               <CalendarPlus className="w-4 h-4 text-indigo-400" />
-              Gönderi planla
+              {tStudio("schedulePost")}
             </DialogTitle>
-            <button
-              onClick={onClose}
-              className="w-7 h-7 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/[0.08] transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
         </DialogHeader>
 
@@ -137,33 +147,32 @@ export function ScheduleModal({
             {/* Preview */}
             {!assetId && (
               <p className="text-xs text-amber-400/90 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-3 py-2">
-                API bir varlık kimliği gerektirir. Takvimden planlamak için önce Studio’da içerik üretin; varlık
-                kimliği otomatik eklenir.
+                {t("noAssetWarning")}
               </p>
             )}
             {imageUrl && (
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+              <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border border-border">
                 <img
                   src={imageUrl}
                   alt=""
-                  className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+                  className="w-14 h-14 rounded-xl object-cover shrink-0"
                 />
-                <p className="text-xs text-white/40">
-                  Görsel bu gönderiye eklenecek
+                <p className="text-xs text-muted-foreground">
+                  {t("imageAttached")}
                 </p>
               </div>
             )}
 
             {/* Caption */}
             <div>
-              <label className="text-xs text-white/40 font-medium uppercase tracking-wider mb-1.5 block">
-                Açıklama
+              <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1.5 block">
+                {t("captionLabel")}
               </label>
               <Textarea
                 {...register("caption")}
                 rows={3}
-                placeholder="Gönderi metninizi yazın…"
-                className="bg-white/[0.04] border-white/[0.08] rounded-xl text-white text-sm resize-none placeholder:text-white/20 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/30"
+                placeholder={t("captionPlaceholder")}
+                className="bg-foreground/4 border-border rounded-xl text-foreground text-sm resize-none placeholder:text-foreground/30 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/30"
               />
               {errors.caption && (
                 <p className="text-xs text-red-400 mt-1">
@@ -174,22 +183,22 @@ export function ScheduleModal({
 
             {/* Hashtags */}
             <div>
-              <label className="text-xs text-white/40 font-medium uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                 <Hash className="w-3 h-3" />
-                Etiketler
+                {t("hashtagsLabel")}
               </label>
               <Input
                 {...register("hashtags")}
-                placeholder="#luxury #style #brand"
-                className="bg-white/[0.04] border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/30"
+                placeholder={t("hashtagsPlaceholder")}
+                className="bg-foreground/4 border-border rounded-xl text-foreground placeholder:text-foreground/30 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/30"
               />
             </div>
 
             {/* Platform */}
             <div>
-              <label className="text-xs text-white/40 font-medium uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Instagram className="w-3 h-3" />
-                Platform
+                {t("platformLabel")}
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {PLATFORMS.map(({ id, label }) => (
@@ -201,7 +210,7 @@ export function ScheduleModal({
                       "py-2 px-3 rounded-xl border text-xs font-medium transition-all",
                       selectedPlatform === id
                         ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
-                        : "border-white/[0.08] bg-white/[0.03] text-white/40 hover:text-white/70"
+                        : "border-border bg-foreground/3 text-foreground/40 hover:text-foreground/70",
                     )}
                   >
                     {label}
@@ -212,13 +221,13 @@ export function ScheduleModal({
 
             {/* Schedule time */}
             <div>
-              <label className="text-xs text-white/40 font-medium uppercase tracking-wider mb-1.5 block">
-                Tarih ve saat
+              <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1.5 block">
+                {t("dateLabel")}
               </label>
               <Input
                 type="datetime-local"
                 {...register("scheduledAt")}
-                className="bg-white/[0.04] border-white/[0.08] rounded-xl text-white focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/30"
+                className="bg-foreground/4 border-border rounded-xl text-foreground focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/30"
               />
               {errors.scheduledAt && (
                 <p className="text-xs text-red-400 mt-1">
@@ -232,19 +241,19 @@ export function ScheduleModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-2.5 rounded-2xl border border-white/[0.08] text-white/50 hover:text-white text-sm font-medium transition-colors"
+                className="flex-1 py-2.5 rounded-2xl border border-border text-foreground/50 hover:text-foreground text-sm font-medium transition-colors"
               >
-                Vazgeç
+                {tCommon("cancel")}
               </button>
               <button
                 type="submit"
                 disabled={mutation.isPending || !assetId}
-                className="flex-1 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 rounded-2xl bg-linear-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
               >
                 {mutation.isPending && (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 )}
-                {mutation.isPending ? "Planlanıyor…" : "Planla"}
+                {mutation.isPending ? t("scheduling") : t("submit")}
               </button>
             </div>
           </div>

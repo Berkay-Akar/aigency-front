@@ -10,8 +10,10 @@ import { CREDIT_PACKAGES } from "@/lib/billing-packages";
 import { useAuthStore } from "@/store/auth-store";
 import { IyzicoCheckoutModal } from "@/components/features/billing/iyzico-checkout-modal";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 export default function BillingPage() {
+  const t = useTranslations("billingPage");
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const [checkoutHtml, setCheckoutHtml] = useState<string | null>(null);
@@ -42,28 +44,33 @@ export default function BillingPage() {
       setCheckoutHtml(data.checkoutFormContent);
       setCheckoutOpen(true);
     },
-    onError: () => toast.error("Failed to initiate payment. Please try again."),
+    onError: () => toast.error(t("paymentFailed")),
   });
 
   const handlePaymentSuccess = () => {
     setCheckoutOpen(false);
     setCheckoutHtml(null);
     queryClient.invalidateQueries({ queryKey: ["billing", "balance"] });
-    toast.success("Payment successful! Your credits have been added.");
+    toast.success(t("paymentSuccess"));
   };
 
   // Credit usage percentage (rough estimate)
-  const totalPlan = balance?.plan === "Growth" ? 2000 : balance?.plan === "Agency" ? 10000 : 500;
-  const usedCredits = (balance?.totalUsed ?? 0);
+  const totalPlan =
+    balance?.plan === "Growth"
+      ? 2000
+      : balance?.plan === "Agency"
+        ? 10000
+        : 500;
+  const usedCredits = balance?.totalUsed ?? 0;
   const remainingCredits = balance?.credits ?? 0;
   const usagePercent = Math.min((usedCredits / totalPlan) * 100, 100);
 
   return (
-    <div className="p-5 md:p-8 pb-24 md:pb-8 max-w-4xl">
+    <div className="min-h-full p-5 md:p-8 pb-24 md:pb-8 w-full">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-xl font-bold text-white mb-1">Billing</h1>
-        <p className="text-sm text-white/30">Manage your credits and plan</p>
+        <h1 className="text-xl font-bold text-foreground mb-1">{t("title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
 
       {/* Current balance */}
@@ -78,20 +85,28 @@ export default function BillingPage() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Zap className="w-5 h-5 text-indigo-400" />
-                <span className="text-3xl font-bold text-white">
+                <span className="text-3xl font-bold text-foreground">
                   {remainingCredits.toLocaleString()}
                 </span>
-                <span className="text-white/40 text-sm">credits remaining</span>
+                <span className="text-muted-foreground text-sm">
+                  {t("creditsRemaining")}
+                </span>
               </div>
-              <p className="text-sm text-white/40">
-                {balance?.plan ?? "—"} plan
+              <p className="text-sm text-muted-foreground">
+                {balance?.plan ?? "—"} {t("plan")}
                 {balance?.renewsAt && (
                   <span>
-                    {" "}· renews{" "}
-                    {new Date(balance.renewsAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
+                    {" "}
+                    · {t("renews")}{" "}
+                    {new Date(balance.renewsAt).toLocaleDateString(
+                      typeof navigator !== "undefined" && navigator.language
+                        ? navigator.language
+                        : "en-US",
+                      {
+                        month: "short",
+                        day: "numeric",
+                      },
+                    )}
                   </span>
                 )}
               </p>
@@ -99,9 +114,13 @@ export default function BillingPage() {
               {/* Usage bar */}
               {balance?.totalUsed !== undefined && (
                 <div className="mt-4 w-64">
-                  <div className="flex items-center justify-between text-xs text-white/40 mb-1.5">
-                    <span>{usedCredits.toLocaleString()} used</span>
-                    <span>{totalPlan.toLocaleString()} plan limit</span>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                    <span>
+                      {usedCredits.toLocaleString()} {t("used")}
+                    </span>
+                    <span>
+                      {totalPlan.toLocaleString()} {t("planLimit")}
+                    </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
                     <div
@@ -118,7 +137,7 @@ export default function BillingPage() {
                   queryKey: ["billing", "balance"],
                 })
               }
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/[0.08] transition-colors"
+              className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.08] transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -128,8 +147,8 @@ export default function BillingPage() {
 
       {/* Buy credits */}
       <div className="mb-3">
-        <h2 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-4">
-          Top up credits
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+          {t("topUp")}
         </h2>
         <div className="grid sm:grid-cols-3 gap-4">
           {CREDIT_PACKAGES.map((pkg) => (
@@ -138,22 +157,22 @@ export default function BillingPage() {
               className={cn(
                 "relative p-6 rounded-3xl border transition-all",
                 pkg.popular
-                  ? "border-indigo-500/40 bg-indigo-600/10"
-                  : "border-white/10 bg-white/[0.04] backdrop-blur-sm hover:border-white/20"
+                  ? "border-indigo-500/40 bg-indigo-500/10"
+                  : "border-border bg-card backdrop-blur-sm hover:border-border/50",
               )}
             >
               {pkg.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-indigo-600 text-white text-[10px] font-semibold">
-                  Best value
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-indigo-500 text-white text-[10px] font-semibold">
+                  {t("bestValue")}
                 </div>
               )}
 
               <div className="mb-4">
-                <p className="text-xs text-white/40 font-medium mb-1">
+                <p className="text-xs text-muted-foreground font-medium mb-1">
                   {pkg.label}
                 </p>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-white">
+                  <span className="text-3xl font-bold text-foreground">
                     {pkg.price}
                   </span>
                 </div>
@@ -162,11 +181,13 @@ export default function BillingPage() {
                   <span className="text-indigo-300 font-medium">
                     {pkg.credits.toLocaleString()}
                   </span>
-                  <span className="text-white/40">credits</span>
+                  <span className="text-muted-foreground">{t("credits")}</span>
                 </div>
               </div>
 
-              <p className="text-xs text-white/30 mb-5">{pkg.desc}</p>
+              <p className="text-xs text-muted-foreground mb-5">
+                {t(pkg.descKey as Parameters<typeof t>[0])}
+              </p>
 
               <button
                 onClick={() => paymentMutation.mutate(pkg.id)}
@@ -174,8 +195,8 @@ export default function BillingPage() {
                 className={cn(
                   "w-full py-2.5 rounded-2xl text-sm font-medium transition-colors flex items-center justify-center gap-2",
                   pkg.popular
-                    ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
-                    : "bg-white/[0.07] hover:bg-white/[0.1] text-white border border-white/[0.08]"
+                    ? "bg-linear-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white shadow-lg shadow-indigo-500/20"
+                    : "bg-white/[0.07] hover:bg-white/[0.1] text-foreground border border-border",
                 )}
               >
                 {paymentMutation.isPending &&
@@ -184,7 +205,7 @@ export default function BillingPage() {
                 ) : (
                   <CreditCard className="w-4 h-4" />
                 )}
-                Buy {pkg.credits.toLocaleString()} credits
+                {t("buy")}
               </button>
             </div>
           ))}
@@ -192,19 +213,23 @@ export default function BillingPage() {
       </div>
 
       {/* What credits cost */}
-      <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md">
-        <h3 className="text-sm font-semibold text-white mb-4">Credit costs</h3>
+      <div className="rounded-3xl border border-border bg-card p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md">
+        <h3 className="text-sm font-semibold text-foreground mb-4">
+          {t("creditCostsTitle")}
+        </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Image generation", cost: "10 credits" },
-            { label: "Image edit / I2I", cost: "10 credits" },
-            { label: "Video (I2V)", cost: "50 credits" },
-            { label: "Prompt enhance", cost: "OpenAI dependent" },
-          ].map(({ label, cost }) => (
-            <div key={label} className="flex items-center gap-2">
+            { labelKey: "costImageGen", cost: "10" },
+            { labelKey: "costImageEdit", cost: "10" },
+            { labelKey: "costVideo", cost: "50" },
+            { labelKey: "costPromptEnhance", cost: t("openAiDependent") },
+          ].map(({ labelKey, cost }) => (
+            <div key={labelKey} className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
               <div>
-                <p className="text-xs text-white/70 font-medium">{label}</p>
+                <p className="text-xs text-foreground/70 font-medium">
+                  {t(labelKey as Parameters<typeof t>[0])}
+                </p>
                 <p className="text-xs text-indigo-400">{cost}</p>
               </div>
             </div>

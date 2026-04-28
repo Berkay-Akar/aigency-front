@@ -5,6 +5,8 @@ import { useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthInitializer } from "@/components/shared/auth-initializer";
 import { IntlProvider } from "@/components/shared/intl-provider";
+import { ThemeApplier } from "@/components/shared/theme-applier";
+import { useAppStore } from "@/store/app-store";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -16,15 +18,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
             retry: 1,
           },
         },
-      })
+      }),
   );
+
+  const theme = useAppStore((s) => s.theme);
 
   return (
     <QueryClientProvider client={queryClient}>
       <IntlProvider>
+        <ThemeApplier />
         <AuthInitializer />
         {children}
-        <Toaster position="bottom-right" theme="dark" />
+        <Toaster position="bottom-right" theme={theme} />
       </IntlProvider>
     </QueryClientProvider>
   );

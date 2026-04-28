@@ -30,7 +30,7 @@ function ProductRecentPanel({ className }: { className?: string }) {
     return (
       <div
         className={cn(
-          "rounded-2xl border border-dashed border-white/8 p-5 text-center text-xs text-white/30",
+          "rounded-2xl border border-dashed border-border p-5 text-center text-xs text-muted-foreground",
           className,
         )}
       >
@@ -46,13 +46,13 @@ function ProductRecentPanel({ className }: { className?: string }) {
         className,
       )}
     >
-      <p className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-white/35">
+      <p className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {t("recentGenerations")}
       </p>
       {sessions.map((session) => (
         <div
           key={session.id}
-          className="shrink-0 overflow-hidden rounded-2xl border border-white/8 bg-white/2"
+          className="shrink-0 overflow-hidden rounded-2xl border border-border bg-foreground/[0.02]"
         >
           {/* Thumbnail grid */}
           <div
@@ -77,11 +77,13 @@ function ProductRecentPanel({ className }: { className?: string }) {
           </div>
           {/* Footer */}
           <div className="flex items-center justify-between gap-1 px-2.5 py-2">
-            <span className="text-[10px] text-white/30">{session.at}</span>
+            <span className="text-[10px] text-muted-foreground">
+              {session.at}
+            </span>
             <button
               type="button"
               onClick={() => void startProductGeneration()}
-              className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold text-white/50 transition hover:bg-white/6 hover:text-white/80"
+              className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold text-foreground/50 transition hover:bg-foreground/[0.06] hover:text-foreground/80"
             >
               <RefreshCw className="h-3 w-3" />
               {t("previewRegenerate")}
@@ -104,7 +106,7 @@ export function ProductStudioWorkspace() {
   return (
     <div className="relative flex h-full min-h-0 flex-col gap-4 p-4 md:p-5 lg:flex-row lg:gap-5">
       {/* ── Left: flow form ──────────────────────────────────────────── */}
-      <aside className="hidden w-full shrink-0 lg:block lg:w-75 xl:w-80">
+      <aside className="hidden w-full shrink-0 lg:block lg:w-90 xl:w-100">
         <ProductControlPanel className="h-full max-h-[calc(100vh-60px-44px-2.5rem)]" />
       </aside>
 
@@ -125,7 +127,7 @@ export function ProductStudioWorkspace() {
           className="glass-panel max-h-[90svh] rounded-t-3xl border-0 shadow-2xl"
         >
           <SheetHeader className="px-5 pb-0 pt-4">
-            <SheetTitle className="text-sm font-semibold text-white/70">
+            <SheetTitle className="text-sm font-semibold text-foreground/70">
               {t("flowSettingsTitle")}
             </SheetTitle>
           </SheetHeader>
@@ -142,7 +144,7 @@ export function ProductStudioWorkspace() {
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="glass-trigger fixed bottom-20 right-4 z-40 flex h-12 items-center gap-2 rounded-2xl px-4 text-sm font-semibold text-white shadow-xl shadow-black/40 transition-transform hover:scale-[1.02] hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 lg:hidden"
+        className="glass-trigger fixed bottom-20 right-4 z-40 flex h-12 items-center gap-2 rounded-2xl px-4 text-sm font-semibold text-foreground shadow-xl shadow-black/40 transition-transform hover:scale-[1.02] hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 lg:hidden"
       >
         <SlidersHorizontal className="h-4 w-4 text-indigo-400" aria-hidden />
         {t("settings")}

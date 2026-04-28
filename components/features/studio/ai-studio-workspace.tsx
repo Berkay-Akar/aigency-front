@@ -59,7 +59,7 @@ export function AiStudioWorkspace() {
       <button
         type="button"
         onClick={() => setMobileControlsOpen(true)}
-        className="glass-trigger fixed bottom-20 right-4 z-40 flex h-12 items-center gap-2 rounded-2xl px-4 text-sm font-semibold text-white shadow-xl shadow-black/40 transition-transform hover:scale-[1.02] hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 lg:hidden"
+        className="glass-trigger fixed bottom-20 right-4 z-40 flex h-12 items-center gap-2 rounded-2xl px-4 text-sm font-semibold text-foreground shadow-xl shadow-black/40 transition-transform hover:scale-[1.02] hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 lg:hidden"
       >
         <SlidersHorizontal className="h-4 w-4 text-indigo-400" aria-hidden />
         {t("configure")}

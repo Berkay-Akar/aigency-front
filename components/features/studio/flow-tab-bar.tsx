@@ -53,8 +53,8 @@ export function FlowTabBar({ compact = false }: { compact?: boolean }) {
               ? "px-4 py-2 text-xs font-semibold uppercase tracking-wider"
               : "flex-col px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider",
             activeProductFlow === id
-              ? "text-indigo-200"
-              : "text-white/45 hover:text-white/70",
+              ? "text-indigo-500 dark:text-indigo-200"
+              : "text-foreground/45 hover:text-foreground/70",
           )}
         >
           {activeProductFlow === id && (

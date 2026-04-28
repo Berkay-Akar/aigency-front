@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authApi, getGoogleOAuthStartUrl } from "@/lib/api";
@@ -44,8 +45,12 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function LoginPage() {
+  const t = useTranslations("auth");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isAddAccount = searchParams.get("addAccount") === "1";
   const login = useAuthStore((s) => s.login);
+  const addAccountLogin = useAuthStore((s) => s.addAccountLogin);
   const [showPw, setShowPw] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -68,7 +73,11 @@ export default function LoginPage() {
   const onSubmit = async (data: FormData) => {
     try {
       const auth = await authApi.login(data);
-      login(auth.token, auth.user, auth.refreshToken);
+      if (isAddAccount) {
+        addAccountLogin(auth.token, auth.user, auth.refreshToken);
+      } else {
+        login(auth.token, auth.user, auth.refreshToken);
+      }
       router.push("/dashboard");
     } catch (err: unknown) {
       const msg =
@@ -83,9 +92,11 @@ export default function LoginPage() {
       {/* Card */}
       <div className="glass-panel rounded-3xl p-8 shadow-2xl">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white mb-2">Welcome back</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">
+            {isAddAccount ? t("addAnotherAccount") : t("welcomeBack")}
+          </h1>
           <p className="text-sm text-white/40">
-            Sign in to your Aigencys account
+            {isAddAccount ? t("addAccountDesc") : t("signInToAccount")}
           </p>
         </div>
 
@@ -100,7 +111,7 @@ export default function LoginPage() {
           ) : (
             <GoogleIcon className="w-5 h-5" />
           )}
-          {googleLoading ? "Redirecting…" : "Continue with Google"}
+          {googleLoading ? t("redirecting") : t("continueWithGoogle")}
         </button>
 
         <div className="relative my-6">
@@ -109,7 +120,7 @@ export default function LoginPage() {
           </div>
           <div className="relative flex justify-center text-xs">
             <span className="bg-[#080808] px-3 text-white/35">
-              or with email
+              {t("orWithEmail")}
             </span>
           </div>
         </div>
@@ -121,7 +132,7 @@ export default function LoginPage() {
               htmlFor="email"
               className="text-xs text-white/40 font-medium uppercase tracking-wider mb-1.5 block"
             >
-              Email
+              {t("email")}
             </Label>
             <Input
               id="email"
@@ -132,7 +143,9 @@ export default function LoginPage() {
               className="bg-white/[0.05] border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500/40 h-11"
             />
             {errors.email && (
-              <p className="text-xs text-red-400 mt-1.5">{errors.email.message}</p>
+              <p className="text-xs text-red-400 mt-1.5">
+                {errors.email.message}
+              </p>
             )}
           </div>
 
@@ -143,13 +156,13 @@ export default function LoginPage() {
                 htmlFor="password"
                 className="text-xs text-white/40 font-medium uppercase tracking-wider"
               >
-                Password
+                {t("password")}
               </Label>
               <Link
-                href="#"
+                href="/forgot-password"
                 className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
               >
-                Forgot password?
+                {t("forgotPassword")}
               </Link>
             </div>
             <div className="relative">
@@ -184,20 +197,20 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-colors shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 mt-2"
+            className="w-full h-11 rounded-2xl bg-linear-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-colors shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 mt-2"
           >
             {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            {isSubmitting ? "Signing in…" : "Sign in"}
+            {isSubmitting ? t("signingIn") : t("signIn")}
           </button>
         </form>
 
         <p className="text-center text-sm text-white/30 mt-6">
-          Don&apos;t have an account?{" "}
+          {t("noAccount")}{" "}
           <Link
             href="/register"
             className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
           >
-            Create one
+            {t("createAccount")}
           </Link>
         </p>
       </div>

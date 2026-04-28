@@ -9,7 +9,7 @@ export default function StudioPage() {
   const studioTab = useStudioStore((s) => s.studioTab);
 
   return (
-    <div className="flex h-full flex-col bg-[#050505]">
+    <div className="flex h-full flex-col dark:bg-[#050505] bg-background">
       <StudioTopNav />
       <div className="min-h-0 flex-1">
         {studioTab === "creative" ? (

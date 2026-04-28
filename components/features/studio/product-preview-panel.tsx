@@ -33,6 +33,7 @@ const PRO_SAMPLE_IMAGES: Record<ProductFlow, string | null> = {
   "product-swap": "/sample-outputs/swap-output.webp", // /sample-outputs/pro-product-swap.jpg
   "ghost-mannequin": null, // /sample-outputs/pro-ghost-mannequin.jpg
   "photo-to-video": null, // /sample-outputs/pro-photo-to-video.jpg
+  upscale: null,
 };
 
 // ─── Lightbox ──────────────────────────────────────────────────────────────────
@@ -159,12 +160,12 @@ function LoadingState({ progress }: { count: number; progress: number }) {
         </div>
       </div>
       <div className="w-full max-w-md space-y-2">
-        <div className="flex justify-between text-xs text-white/45">
+        <div className="flex justify-between text-xs text-foreground/45">
           <span>{t("previewLoading")}</span>
           <span className="tabular-nums">{Math.round(progress)}%</span>
         </div>
-        <Progress value={progress} className="h-1.5 bg-white/6" />
-        <p className="text-center text-xs text-white/35">
+        <Progress value={progress} className="h-1.5 bg-foreground/[0.06]" />
+        <p className="text-center text-xs text-foreground/35">
           {t("previewLoading")}
         </p>
       </div>
@@ -184,11 +185,11 @@ function ErrorState({
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
       <AlertCircle className="h-10 w-10 text-red-400" />
-      <p className="text-sm font-medium text-white/70">{message}</p>
+      <p className="text-sm font-medium text-foreground/70">{message}</p>
       <button
         type="button"
         onClick={onRetry}
-        className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/60 transition hover:bg-white/9"
+        className="rounded-xl border border-border bg-foreground/[0.05] px-4 py-2 text-sm text-foreground/60 transition hover:bg-foreground/[0.09]"
       >
         {t("previewRetry")}
       </button>
@@ -203,26 +204,35 @@ function EmptyState() {
   const proSampleSrc = PRO_SAMPLE_IMAGES[activeProductFlow];
   return (
     <div className="flex h-full flex-col items-center justify-center gap-5 p-8">
-      {/* Sample output card — only shown when a custom image is set */}
-      {proSampleSrc && (
-        <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-white/3 shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
-          <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-lg border border-white/12 bg-black/60 px-2.5 py-1 backdrop-blur-md">
-            <ImageIcon className="h-3 w-3 text-indigo-300/80" aria-hidden />
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/60">
-              {t("sampleOutputLabel")}
-            </span>
+      <div className="relative w-full max-w-sm lg:max-w-[calc((100vh_-_280px)*0.75)] aspect-[3/4] overflow-hidden rounded-2xl border border-border bg-foreground/[0.03] shadow-sm">
+        {proSampleSrc ? (
+          <>
+            <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-lg border border-white/12 bg-black/60 px-2.5 py-1 backdrop-blur-md">
+              <ImageIcon className="h-3 w-3 text-indigo-300/80" aria-hidden />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/60">
+                {t("sampleOutputLabel")}
+              </span>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={proSampleSrc}
+              alt={t("sampleOutputLabel")}
+              className="absolute inset-0 h-full w-full object-cover opacity-60"
+            />
+          </>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <ImageIcon className="h-8 w-8 text-foreground/20" aria-hidden />
           </div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={proSampleSrc}
-            alt={t("sampleOutputLabel")}
-            className="h-auto w-full opacity-60"
-          />
-        </div>
-      )}
+        )}
+      </div>
       <div className="text-center">
-        <p className="text-sm font-medium text-white/50">{t("previewEmpty")}</p>
-        <p className="mt-1 text-xs text-white/25">{t("previewEmptyHint")}</p>
+        <p className="text-sm font-medium text-foreground/50">
+          {t("previewEmpty")}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t("previewEmptyHint")}
+        </p>
       </div>
     </div>
   );
@@ -248,8 +258,8 @@ function ActionBtn({
       className={cn(
         "group relative flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition-all duration-200",
         highlight
-          ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-200 hover:bg-indigo-500/20"
-          : "border-white/8 bg-white/4 text-white/50 hover:border-white/15 hover:bg-white/8 hover:text-white/80",
+          ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-500 dark:text-indigo-200 hover:bg-indigo-500/20"
+          : "border-border bg-foreground/[0.04] text-foreground/50 hover:border-border hover:bg-foreground/[0.08] hover:text-foreground/80",
       )}
     >
       <span className="shrink-0">{icon}</span>
@@ -277,16 +287,20 @@ function SingleResult({
   return (
     <>
       <div className="flex flex-col items-center justify-center gap-5 p-6 h-full">
-        {/* Result card — same style as sample output card */}
-        <div className="relative w-full max-w-sm lg:max-w-[calc((100vh_-_280px)*0.75)] overflow-hidden rounded-2xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
+        {/* Result card — same fixed size as loading/empty state */}
+        <div className="relative w-full max-w-sm lg:max-w-[calc((100vh_-_280px)*0.75)] aspect-[3/4] overflow-hidden rounded-2xl border border-border shadow-sm bg-black/20">
           {isVideo ? (
-            <video src={result.url} controls className="w-full h-auto" />
+            <video
+              src={result.url}
+              controls
+              className="absolute inset-0 h-full w-full object-contain"
+            />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={result.url}
               alt="Generated result"
-              className="w-full h-auto"
+              className="absolute inset-0 h-full w-full object-contain"
             />
           )}
         </div>
@@ -366,14 +380,14 @@ function MultiResult({
       <div className="flex flex-col items-center justify-center gap-5 p-6 h-full">
         {/* Primary card */}
         <div
-          className="relative w-full max-w-sm lg:max-w-[calc((100vh_-_280px)*0.75)] cursor-zoom-in overflow-hidden rounded-2xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
+          className="relative w-full max-w-sm lg:max-w-[calc((100vh_-_280px)*0.75)] aspect-[3/4] cursor-zoom-in overflow-hidden rounded-2xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.35)] bg-black/20"
           onClick={() => setLightboxOpen(true)}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={primary.url}
             alt={ANGLE_LABELS[primaryIdx]}
-            className="w-full h-auto"
+            className="absolute inset-0 h-full w-full object-contain"
           />
           <div className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-black/50 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
             {ANGLE_LABELS[primaryIdx] ?? `Görsel ${primaryIdx + 1}`}
@@ -391,7 +405,7 @@ function MultiResult({
                 "relative h-16 flex-1 overflow-hidden rounded-xl border transition-all",
                 primaryIdx === i
                   ? "border-indigo-500/50 ring-1 ring-indigo-500/30"
-                  : "border-white/10 opacity-60 hover:opacity-90",
+                  : "border-border opacity-60 hover:opacity-90",
               )}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -29,8 +29,8 @@ export function GenerateButton({
       className={cn(
         "relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl py-3.5 text-sm font-semibold text-white transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/50 disabled:pointer-events-none disabled:opacity-45",
         loading
-          ? "bg-indigo-600/80 shadow-lg shadow-indigo-600/20"
-          : "bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-900/30",
+          ? "bg-indigo-500/80 shadow-lg shadow-indigo-600/20"
+          : "bg-linear-to-r from-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-900/30",
         className,
       )}
     >

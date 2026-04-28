@@ -2,6 +2,7 @@ import { isAxiosError } from "axios";
 import { create } from "zustand";
 import {
   aiApi,
+  assetsApi,
   productApi,
   type AiAspectRatio,
   type AiGenerationMode,
@@ -13,7 +14,9 @@ import {
   type JobStatus,
   type ModelPhotoOptions,
   type OutputFormat,
+  type SeedreamPreset,
 } from "@/lib/api";
+import { useAppStore } from "@/store/app-store";
 import { priceTierToModelTier } from "@/lib/fal-models";
 import { buildResolvedReferenceImageUrls } from "@/lib/studio-reference-url";
 import {
@@ -49,7 +52,8 @@ export type ProductFlow =
   | "product-reference"
   | "product-swap"
   | "ghost-mannequin"
-  | "photo-to-video";
+  | "photo-to-video"
+  | "upscale";
 
 export type ProductResolution = "1K" | "2K";
 export type ProductModelTier = "fast" | "standard" | "premium";
@@ -139,6 +143,15 @@ interface StudioState {
   // Flow 6 — Photo to Video
   videoPlatform: "instagram" | "tiktok" | "general";
   videoDuration: 5 | 10;
+  // Seedream Multi-Image Edit (Creative Studio)
+  seedreamModelDressingSlots: Record<string, string | null>;
+  seedreamProductSceneSlots: Record<string, string | null>;
+  seedreamBackground: string;
+  seedreamPresets: SeedreamPreset[] | null;
+  // Upscale flow (Product Studio)
+  upscaleType: "image" | "video";
+  upscaleInputUrl: string | null;
+  upscaleVideoUrlInput: string;
   // Product job state
   productJobIds: string[];
   productResults: GenerationResult[];
@@ -230,6 +243,13 @@ interface StudioState {
   setGhostBackgroundColor: (c: string) => void;
   setVideoPlatform: (p: "instagram" | "tiktok" | "general") => void;
   setVideoDuration: (d: 5 | 10) => void;
+  setSeedreamModelDressingSlot: (key: string, url: string | null) => void;
+  setSeedreamProductSceneSlot: (key: string, url: string | null) => void;
+  setSeedreamBackground: (bg: string) => void;
+  loadSeedreamPresets: () => Promise<void>;
+  setUpscaleType: (t: "image" | "video") => void;
+  setUpscaleInputUrl: (u: string | null) => void;
+  setUpscaleVideoUrlInput: (u: string) => void;
   setProductJobIds: (ids: string[]) => void;
   setProductResults: (results: GenerationResult[]) => void;
   setIsProductGenerating: (v: boolean) => void;
@@ -323,6 +343,22 @@ const initialProductState = {
   ghostBackgroundColor: "white",
   videoPlatform: "instagram" as "instagram" | "tiktok" | "general",
   videoDuration: 5 as 5 | 10,
+  seedreamModelDressingSlots: {
+    clothing_1: null,
+    clothing_2: null,
+    model_photo: null,
+    accessory: null,
+  } as Record<string, string | null>,
+  seedreamProductSceneSlots: {
+    background_scene: null,
+    product: null,
+    logo: null,
+  } as Record<string, string | null>,
+  seedreamBackground: "",
+  seedreamPresets: null as SeedreamPreset[] | null,
+  upscaleType: "image" as "image" | "video",
+  upscaleInputUrl: null as string | null,
+  upscaleVideoUrlInput: "",
   productJobIds: [] as string[],
   productResults: [] as GenerationResult[],
   productRecentSessions: [] as {
@@ -634,6 +670,109 @@ export const useStudioStore = create<StudioState>((set, get) => ({
 
   startGeneration: async () => {
     const s = get();
+
+    // ── Upscale branch ───────────────────────────────────────────────────
+    if (s.generationMode === "upscale") {
+      // Image upscale
+      if (s.upscaleType === "image") {
+        if (!s.upscaleInputUrl) {
+          set({ generationError: "NEED_REFERENCE_IMAGE", isGenerating: false });
+          return null;
+        }
+        const [resolvedUrl] = await buildResolvedReferenceImageUrls([
+          s.upscaleInputUrl,
+        ]);
+        if (!resolvedUrl) {
+          set({
+            generationError: "REFERENCE_PREPARE_FAILED",
+            isGenerating: false,
+          });
+          return null;
+        }
+        try {
+          set({
+            isGenerating: true,
+            generationError: null,
+            result: null,
+            progress: 8,
+            jobId: null,
+            jobStatus: "queued",
+          });
+          const res = await aiApi.upscaleImage({ imageUrl: resolvedUrl });
+          set({
+            jobId: res.jobId,
+            jobStatus: "queued",
+            progress: 15,
+            lastCreditsCost: res.creditsCost,
+          });
+          return res.jobId;
+        } catch (e) {
+          const insufficient =
+            isAxiosError(e) &&
+            (e.response?.status === 402 ||
+              /credit|kredi|402/i.test(
+                String(
+                  (e.response?.data as { message?: string } | undefined)
+                    ?.message ?? "",
+                ),
+              ));
+          set({
+            isGenerating: false,
+            jobStatus: "failed",
+            progress: 0,
+            generationError: insufficient
+              ? "INSUFFICIENT_CREDITS"
+              : "GENERATE_REQUEST_FAILED",
+          });
+          return null;
+        }
+      }
+      // Video upscale
+      const videoUrl =
+        s.upscaleInputUrl ?? (s.upscaleVideoUrlInput.trim() || null);
+      if (!videoUrl) {
+        set({ generationError: "NEED_REFERENCE_IMAGE", isGenerating: false });
+        return null;
+      }
+      try {
+        set({
+          isGenerating: true,
+          generationError: null,
+          result: null,
+          progress: 8,
+          jobId: null,
+          jobStatus: "queued",
+        });
+        const res = await aiApi.upscaleVideo({ videoUrl });
+        set({
+          jobId: res.jobId,
+          jobStatus: "queued",
+          progress: 15,
+          lastCreditsCost: res.creditsCost,
+        });
+        return res.jobId;
+      } catch (e) {
+        const insufficient =
+          isAxiosError(e) &&
+          (e.response?.status === 402 ||
+            /credit|kredi|402/i.test(
+              String(
+                (e.response?.data as { message?: string } | undefined)
+                  ?.message ?? "",
+              ),
+            ));
+        set({
+          isGenerating: false,
+          jobStatus: "failed",
+          progress: 0,
+          generationError: insufficient
+            ? "INSUFFICIENT_CREDITS"
+            : "GENERATE_REQUEST_FAILED",
+        });
+        return null;
+      }
+    }
+
     const composed = s.buildComposedPrompt();
     if (composed.length < 3) {
       set({
@@ -692,6 +831,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       duration: s.generationMode === "image-to-video" ? s.duration : undefined,
       platform: s.platform,
       tone: s.tone,
+      useBrandKit: useAppStore.getState().useBrandKit,
     };
 
     try {
@@ -774,6 +914,30 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     set({ ghostBackgroundColor }),
   setVideoPlatform: (videoPlatform) => set({ videoPlatform }),
   setVideoDuration: (videoDuration) => set({ videoDuration }),
+  setSeedreamModelDressingSlot: (key, url) =>
+    set((s) => ({
+      seedreamModelDressingSlots: {
+        ...s.seedreamModelDressingSlots,
+        [key]: url,
+      },
+    })),
+  setSeedreamProductSceneSlot: (key, url) =>
+    set((s) => ({
+      seedreamProductSceneSlots: { ...s.seedreamProductSceneSlots, [key]: url },
+    })),
+  setSeedreamBackground: (seedreamBackground) => set({ seedreamBackground }),
+  loadSeedreamPresets: async () => {
+    try {
+      const data = await aiApi.getSeedreamPresets();
+      set({ seedreamPresets: data.presets });
+    } catch {
+      /* silent — UI uses hardcoded slots */
+    }
+  },
+  setUpscaleType: (upscaleType) => set({ upscaleType }),
+  setUpscaleInputUrl: (upscaleInputUrl) => set({ upscaleInputUrl }),
+  setUpscaleVideoUrlInput: (upscaleVideoUrlInput) =>
+    set({ upscaleVideoUrlInput }),
   setProductJobIds: (productJobIds) => set({ productJobIds }),
   setProductResults: (productResults) =>
     set((state) => ({
@@ -866,6 +1030,8 @@ export const useStudioStore = create<StudioState>((set, get) => ({
         return s.ghostQuality === "premium" ? 40 : 20;
       case "photo-to-video":
         return s.videoDuration === 10 ? 100 : 50;
+      case "upscale":
+        return s.upscaleType === "video" ? 25 : 5;
       default:
         return 10;
     }
@@ -880,6 +1046,8 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       productProgress: 0,
       isProductGenerating: false,
       productLastCreditsCost: null,
+      upscaleInputUrl: null,
+      upscaleVideoUrlInput: "",
     }),
 
   // ─── Load asset into studio form ─────────────────────────────────────────
@@ -999,6 +1167,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
             modelTier: s.productModelTier,
             outputFormat: "webp" as const,
             customPrompt: s.productCustomPrompt || undefined,
+            useBrandKit: useAppStore.getState().useBrandKit,
             ...(s.productStyleMode === "with-model"
               ? {
                   modelDetails: {
@@ -1055,6 +1224,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
             modelTier: s.productModelTier,
             outputFormat: "webp",
             customPrompt: s.productCustomPrompt || undefined,
+            useBrandKit: useAppStore.getState().useBrandKit,
           });
           set({
             productJobIds: res.jobIds,
@@ -1093,6 +1263,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
             modelTier: s.productModelTier,
             outputFormat: "webp",
             customPrompt: s.productCustomPrompt || undefined,
+            useBrandKit: useAppStore.getState().useBrandKit,
           });
           set({
             productJobIds: [res.jobId],
@@ -1129,6 +1300,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
             modelTier: s.productModelTier,
             outputFormat: "webp",
             customPrompt: s.productCustomPrompt || undefined,
+            useBrandKit: useAppStore.getState().useBrandKit,
           });
           set({
             productJobIds: [res.jobId],
@@ -1163,6 +1335,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
             backgroundColor: s.ghostBackgroundColor || "white",
             outputFormat: "png",
             customPrompt: s.productCustomPrompt || undefined,
+            useBrandKit: useAppStore.getState().useBrandKit,
           });
           set({
             productJobIds: [res.jobId],
@@ -1194,6 +1367,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
             duration: s.videoDuration,
             modelTier: s.productModelTier,
             customPrompt: s.productCustomPrompt || undefined,
+            useBrandKit: useAppStore.getState().useBrandKit,
           });
           set({
             productJobIds: [res.jobId],
@@ -1201,6 +1375,49 @@ export const useStudioStore = create<StudioState>((set, get) => ({
             productProgress: 15,
           });
           return [res.jobId];
+        }
+
+        // ── Flow 7: Upscale ──────────────────────────────────────────────────
+        case "upscale": {
+          if (s.upscaleType === "image") {
+            if (!s.upscaleInputUrl) {
+              set({ isProductGenerating: false, productError: "Görsel seçin" });
+              return null;
+            }
+            const [resolvedUrl] = await buildResolvedReferenceImageUrls([
+              s.upscaleInputUrl,
+            ]);
+            if (!resolvedUrl) {
+              set({
+                isProductGenerating: false,
+                productError: "Görsel yüklenemedi",
+              });
+              return null;
+            }
+            const res = await aiApi.upscaleImage({ imageUrl: resolvedUrl });
+            set({
+              productJobIds: [res.jobId],
+              productLastCreditsCost: res.creditsCost,
+              productProgress: 15,
+            });
+            return [res.jobId];
+          } else {
+            const videoUrl = s.upscaleInputUrl ?? s.upscaleVideoUrlInput;
+            if (!videoUrl) {
+              set({
+                isProductGenerating: false,
+                productError: "Video URL girin veya dosya seçin",
+              });
+              return null;
+            }
+            const res = await aiApi.upscaleVideo({ videoUrl });
+            set({
+              productJobIds: [res.jobId],
+              productLastCreditsCost: res.creditsCost,
+              productProgress: 15,
+            });
+            return [res.jobId];
+          }
         }
 
         default:

@@ -48,7 +48,7 @@ function FieldSelect({
     <div className="space-y-1.5">
       <Label
         htmlFor={id}
-        className="text-[10px] font-semibold uppercase tracking-wider text-white/35"
+        className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
       >
         {label}
       </Label>
@@ -56,11 +56,11 @@ function FieldSelect({
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="glass-trigger h-10 w-full rounded-xl px-3 text-sm text-white focus-visible:border-indigo-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
+        className="glass-trigger h-10 w-full rounded-xl px-3 text-sm text-foreground focus-visible:border-indigo-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
       >
         <option value="">—</option>
         {options.map((o) => (
-          <option key={o} value={o} className="bg-[#111]">
+          <option key={o} value={o} className="dark:bg-[#111] bg-background">
             {labelMap[o] ?? o}
           </option>
         ))}
@@ -167,7 +167,7 @@ export function CustomizeModeForm() {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25 }}
     >
-      <p className="text-xs leading-relaxed text-white/40">
+      <p className="text-xs leading-relaxed text-muted-foreground">
         {ts("helperCustomize")}
       </p>
 
@@ -240,7 +240,9 @@ export function CustomizeModeForm() {
       </SectionAccordion>
 
       <SectionAccordion title={t("sectionSubject")}>
-        <p className="mb-3 text-[11px] text-white/35">{t("subjectHint")}</p>
+        <p className="mb-3 text-[11px] text-muted-foreground">
+          {t("subjectHint")}
+        </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <FieldSelect
             id="g-gender"
@@ -352,9 +354,9 @@ export function CustomizeModeForm() {
             labelMap={subjectLabelMap}
           />
           <div className="space-y-2">
-            <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-white/35">
+            <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               <span>{t("height")}</span>
-              <span className="tabular-nums text-white/50">
+              <span className="tabular-nums text-foreground/50">
                 {s.heightEmphasis}%
               </span>
             </div>
@@ -405,7 +407,7 @@ export function CustomizeModeForm() {
       <SectionAccordion title={t("sectionOutput")} defaultOpen>
         <div className="space-y-4">
           <div>
-            <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
+            <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               {t("aspectRatio")}
             </Label>
             <div className="grid grid-cols-3 gap-2">
@@ -424,7 +426,7 @@ export function CustomizeModeForm() {
                     "rounded-xl border py-2 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
                     s.aspectRatio === id
                       ? "border-indigo-500/50 bg-indigo-500/15 text-indigo-200"
-                      : "border-white/8 bg-white/2 text-white/45",
+                      : "border-border bg-foreground/[0.02] text-foreground/45",
                   )}
                 >
                   {label}
@@ -434,9 +436,9 @@ export function CustomizeModeForm() {
           </div>
 
           <div className="space-y-2">
-            <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-white/35">
+            <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               <span>{t("styleStrength")}</span>
-              <span className="tabular-nums text-white/50">
+              <span className="tabular-nums text-foreground/50">
                 {s.styleStrength}%
               </span>
             </div>
@@ -451,9 +453,9 @@ export function CustomizeModeForm() {
             />
           </div>
           <div className="space-y-2">
-            <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-white/35">
+            <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               <span>{t("promptStrength")}</span>
-              <span className="tabular-nums text-white/50">
+              <span className="tabular-nums text-foreground/50">
                 {s.promptStrength}%
               </span>
             </div>
@@ -469,7 +471,7 @@ export function CustomizeModeForm() {
           </div>
 
           <div>
-            <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
+            <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               {t("backgroundMode")}
             </Label>
             <div className="grid grid-cols-3 gap-2">
@@ -488,7 +490,7 @@ export function CustomizeModeForm() {
                     "rounded-xl border py-2 text-[11px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
                     s.backgroundMode === id
                       ? "border-indigo-500/50 bg-indigo-500/15 text-indigo-200"
-                      : "border-white/8 bg-white/2 text-white/45",
+                      : "border-border bg-foreground/[0.02] text-foreground/45",
                   )}
                 >
                   {label}
@@ -507,7 +509,7 @@ export function CustomizeModeForm() {
 
           {s.generationMode === "image-to-video" ? (
             <div>
-              <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
+              <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {t("duration")}
               </Label>
               <div className="flex gap-2">
@@ -520,7 +522,7 @@ export function CustomizeModeForm() {
                       "flex-1 rounded-xl border py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
                       s.duration === d
                         ? "border-indigo-500/50 bg-indigo-500/15 text-indigo-200"
-                        : "border-white/8 text-white/45",
+                        : "border-border text-foreground/45",
                     )}
                   >
                     {d} {t("seconds")}
@@ -537,7 +539,7 @@ export function CustomizeModeForm() {
           <div>
             <Label
               htmlFor="neg-prompt"
-              className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-white/35"
+              className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
             >
               {t("negativePrompt")}
             </Label>
@@ -547,14 +549,14 @@ export function CustomizeModeForm() {
               onChange={(e) => s.setNegativePrompt(e.target.value)}
               rows={2}
               placeholder={t("negativePlaceholder")}
-              className="resize-none rounded-2xl border-white/8 bg-white/4 text-sm text-white placeholder:text-white/25"
+              className="resize-none rounded-2xl border-border bg-foreground/[0.04] text-sm text-foreground placeholder:text-foreground/30"
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label
                 htmlFor="seed-input"
-                className="text-[10px] font-semibold uppercase tracking-wider text-white/35"
+                className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
               >
                 {t("seed")}
               </Label>
@@ -568,12 +570,12 @@ export function CustomizeModeForm() {
                     s.setSeed(v === "" ? null : Number(v));
                   }}
                   placeholder={t("seedRandom")}
-                  className="h-10 flex-1 rounded-xl border-white/8 bg-white/4 text-white"
+                  className="h-10 flex-1 rounded-xl border-border bg-foreground/[0.04] text-foreground"
                 />
                 <button
                   type="button"
                   onClick={() => s.setSeed(null)}
-                  className="rounded-xl border border-white/8 px-3 text-xs text-white/50 transition-colors hover:bg-white/5"
+                  className="rounded-xl border border-border px-3 text-xs text-foreground/50 transition-colors hover:bg-foreground/[0.05]"
                 >
                   {t("seedRandom")}
                 </button>
@@ -590,7 +592,7 @@ export function CustomizeModeForm() {
               "flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
               enhancePrompt
                 ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-100"
-                : "border-white/8 bg-white/2 text-white/60",
+                : "border-border bg-foreground/[0.02] text-foreground/60",
             )}
           >
             <span>{t("enhanceWithGpt")}</span>
@@ -599,7 +601,7 @@ export function CustomizeModeForm() {
                 "relative inline-flex h-6 w-10 shrink-0 rounded-full border transition-colors",
                 enhancePrompt
                   ? "border-indigo-400/50 bg-indigo-500/40"
-                  : "border-white/20 bg-white/10",
+                  : "border-border bg-foreground/10",
               )}
             >
               <span
@@ -616,7 +618,7 @@ export function CustomizeModeForm() {
       <div>
         <Label
           htmlFor="studio-prompt-custom"
-          className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-white/35"
+          className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
         >
           {t("prompt")}
         </Label>
@@ -626,11 +628,11 @@ export function CustomizeModeForm() {
           onChange={(e) => s.setPrompt(e.target.value)}
           rows={4}
           placeholder={t("promptPlaceholder")}
-          className="resize-none rounded-2xl border-white/8 bg-white/4 text-white placeholder:text-white/25"
+          className="resize-none rounded-2xl border-border bg-foreground/[0.04] text-foreground placeholder:text-foreground/30"
         />
       </div>
 
-      <div className="sticky bottom-0 z-10 space-y-3 border-t border-white/10 bg-[rgb(8_8_10/0.92)] pt-4 shadow-[0_-12px_40px_rgba(0,0,0,0.4)] backdrop-blur-xl">
+      <div className="sticky bottom-0 z-10 space-y-3 border-t border-border dark:bg-[rgb(8_8_10/0.92)] bg-background/95 pt-4 shadow-[0_-12px_40px_rgba(0,0,0,0.15)] backdrop-blur-xl">
         <CreditCostDisplay />
         <GenerateButton
           loading={isGenerating}
@@ -641,7 +643,7 @@ export function CustomizeModeForm() {
         <button
           type="button"
           onClick={() => s.setUiMode("quick")}
-          className="w-full rounded-2xl py-2.5 text-sm font-medium text-white/45 transition-colors hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+          className="w-full rounded-2xl py-2.5 text-sm font-medium text-foreground/45 transition-colors hover:text-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
         >
           {ts("backToQuick")}
         </button>

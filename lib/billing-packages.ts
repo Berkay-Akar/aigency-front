@@ -5,6 +5,7 @@ export interface CreditPackage {
   priceNum: number;
   label: string;
   desc: string;
+  descKey: string;
   popular?: boolean;
 }
 
@@ -16,6 +17,7 @@ export const CREDIT_PACKAGES: CreditPackage[] = [
     priceNum: 9,
     label: "Starter",
     desc: "Perfect for trying things out",
+    descKey: "starterDesc",
   },
   {
     id: "growth_1000",
@@ -24,6 +26,7 @@ export const CREDIT_PACKAGES: CreditPackage[] = [
     priceNum: 39,
     label: "Growth",
     desc: "Best value for regular creators",
+    descKey: "growthDesc",
     popular: true,
   },
   {
@@ -33,5 +36,6 @@ export const CREDIT_PACKAGES: CreditPackage[] = [
     priceNum: 99,
     label: "Pro",
     desc: "For agencies & power users",
+    descKey: "proDesc",
   },
 ];

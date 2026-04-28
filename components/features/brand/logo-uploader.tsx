@@ -1,30 +1,55 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Upload, X, ImageIcon } from "lucide-react";
+import { useRef } from "react";
+import { Upload, X, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
-export function LogoUploader() {
-  const [logo, setLogo] = useState<string | null>(null);
+const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+interface LogoUploaderProps {
+  value: string | null;
+  onUpload: (file: File) => Promise<void>;
+  onRemove: () => void;
+  isUploading?: boolean;
+}
+
+export function LogoUploader({
+  value,
+  onUpload,
+  onRemove,
+  isUploading,
+}: LogoUploaderProps) {
+  const t = useTranslations("brandKit");
+  const tg = useTranslations("generation");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     if (!file.type.startsWith("image/")) return;
-    setLogo(URL.createObjectURL(file));
+    if (file.size > MAX_FILE_BYTES) {
+      toast.error(tg("fileTooLarge"));
+      return;
+    }
+    await onUpload(file);
   };
 
   return (
-    <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/[0.06]">
-      <h3 className="text-sm font-semibold text-white mb-1">Brand Logo</h3>
-      <p className="text-xs text-white/30 mb-5">
-        Upload your logo for consistent AI-generated content
-      </p>
+    <div className="p-6 rounded-3xl bg-card border border-border">
+      <h3 className="text-sm font-semibold text-foreground mb-1">
+        {t("logoTitle")}
+      </h3>
+      <p className="text-xs text-muted-foreground mb-5">{t("logoDesc")}</p>
 
-      {logo ? (
-        <div className="relative w-32 h-32 rounded-2xl overflow-hidden bg-white/[0.05] border border-white/[0.1] group">
-          <img src={logo} alt="Logo" className="w-full h-full object-contain p-3" />
+      {value ? (
+        <div className="relative w-32 h-32 rounded-2xl overflow-hidden bg-white/5 border border-border group">
+          <img
+            src={value}
+            alt="Logo"
+            className="w-full h-full object-contain p-3"
+          />
           <button
-            onClick={() => setLogo(null)}
-            className="absolute top-2 right-2 w-6 h-6 rounded-lg bg-black/50 flex items-center justify-center text-white/70 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={onRemove}
+            className="absolute top-2 right-2 w-6 h-6 rounded-lg bg-black/50 flex items-center justify-center text-foreground/70 hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <X className="w-3 h-3" />
           </button>
@@ -32,16 +57,23 @@ export function LogoUploader() {
       ) : (
         <button
           onClick={() => inputRef.current?.click()}
-          className="flex items-center gap-4 p-4 rounded-2xl border border-dashed border-white/[0.1] hover:border-white/[0.2] hover:bg-white/[0.02] transition-all w-full"
+          disabled={isUploading}
+          className="flex items-center gap-4 p-4 rounded-2xl border border-dashed border-border hover:border-border/50 hover:bg-muted/30 transition-all w-full disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <div className="w-12 h-12 rounded-xl bg-white/[0.05] flex items-center justify-center flex-shrink-0">
-            <Upload className="w-5 h-5 text-white/30" />
+          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
+            {isUploading ? (
+              <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+            ) : (
+              <Upload className="w-5 h-5 text-muted-foreground" />
+            )}
           </div>
           <div className="text-left">
-            <p className="text-sm text-white/50 font-medium mb-0.5">
-              Upload logo
+            <p className="text-sm text-foreground/60 font-medium mb-0.5">
+              {isUploading ? t("uploading") : t("uploadLogo")}
             </p>
-            <p className="text-xs text-white/20">PNG, SVG recommended</p>
+            <p className="text-xs text-muted-foreground/60">
+              {t("formatHint")}
+            </p>
           </div>
           <input
             ref={inputRef}
@@ -50,7 +82,8 @@ export function LogoUploader() {
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
-              if (f) handleFile(f);
+              if (f) void handleFile(f);
+              e.target.value = "";
             }}
           />
         </button>

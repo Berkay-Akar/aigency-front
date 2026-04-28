@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authApi } from "@/lib/api";
@@ -32,6 +33,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
   const [showPw, setShowPw] = useState(false);
+  const t = useTranslations("auth");
 
   const {
     register,
@@ -43,7 +45,7 @@ export default function RegisterPage() {
     try {
       const auth = await authApi.register(data);
       login(auth.token, auth.user, auth.refreshToken);
-      toast.success("Account created! Welcome to Aigencys.");
+      toast.success(t("createTitle"));
       router.push("/dashboard");
     } catch (err: unknown) {
       const msg =
@@ -57,10 +59,10 @@ export default function RegisterPage() {
     <div className="w-full max-w-md">
       <div className="glass-panel rounded-3xl p-8 shadow-2xl">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white mb-2">Create account</h1>
-          <p className="text-sm text-white/40">
-            Start replacing your agency with AI
-          </p>
+          <h1 className="text-2xl font-bold text-white mb-2">
+            {t("createTitle")}
+          </h1>
+          <p className="text-sm text-white/40">{t("createSubtitle")}</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -70,12 +72,12 @@ export default function RegisterPage() {
               htmlFor="name"
               className="text-xs text-white/40 font-medium uppercase tracking-wider mb-1.5 block"
             >
-              Full name
+              {t("fullName")}
             </Label>
             <Input
               id="name"
               type="text"
-              placeholder="Berkay Akar"
+              placeholder={t("fullNamePlaceholder")}
               autoComplete="name"
               {...register("name")}
               className="bg-white/[0.05] border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500/40 h-11"
@@ -93,12 +95,12 @@ export default function RegisterPage() {
               htmlFor="workspaceName"
               className="text-xs text-white/40 font-medium uppercase tracking-wider mb-1.5 block"
             >
-              Workspace name
+              {t("workspaceName")}
             </Label>
             <Input
               id="workspaceName"
               type="text"
-              placeholder="Berkay's Workspace"
+              placeholder={t("workspaceNamePlaceholder")}
               autoComplete="organization"
               {...register("workspaceName")}
               className="bg-white/[0.05] border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500/40 h-11"
@@ -116,7 +118,7 @@ export default function RegisterPage() {
               htmlFor="email"
               className="text-xs text-white/40 font-medium uppercase tracking-wider mb-1.5 block"
             >
-              Email
+              {t("email")}
             </Label>
             <Input
               id="email"
@@ -139,7 +141,7 @@ export default function RegisterPage() {
               htmlFor="password"
               className="text-xs text-white/40 font-medium uppercase tracking-wider mb-1.5 block"
             >
-              Password
+              {t("password")}
             </Label>
             <div className="relative">
               <Input
@@ -173,31 +175,31 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-colors shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 mt-2"
+            className="w-full h-11 rounded-2xl bg-linear-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-colors shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 mt-2"
           >
             {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            {isSubmitting ? "Creating account…" : "Create account — it's free"}
+            {isSubmitting ? t("registering") : t("register")}
           </button>
         </form>
 
         <p className="text-center text-xs text-white/20 mt-4">
-          By creating an account you agree to our{" "}
+          {t("registerAgree")}{" "}
           <span className="text-white/40 cursor-pointer hover:text-white/60">
-            Terms of Service
+            {t("terms")}
           </span>{" "}
-          and{" "}
+          {t("and")}{" "}
           <span className="text-white/40 cursor-pointer hover:text-white/60">
-            Privacy Policy
+            {t("privacy")}
           </span>
         </p>
 
         <p className="text-center text-sm text-white/30 mt-4">
-          Already have an account?{" "}
+          {t("haveAccount")}{" "}
           <Link
             href="/login"
             className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
           >
-            Sign in
+            {t("signInLink")}
           </Link>
         </p>
       </div>

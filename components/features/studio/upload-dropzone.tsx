@@ -3,7 +3,10 @@
 import { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ImageIcon, Upload, X } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 interface UploadDropzoneProps {
   label: string;
@@ -15,6 +18,10 @@ interface UploadDropzoneProps {
   compact?: boolean;
   /** Faded example image shown in the empty slot so the user knows what to upload */
   exampleSrc?: string | null;
+  /** Override max file size in bytes (default 10 MB) */
+  maxSizeBytes?: number;
+  /** Accept string for input element (default "image/*") */
+  accept?: string;
 }
 
 export function UploadDropzone({
@@ -26,16 +33,22 @@ export function UploadDropzone({
   className,
   compact = false,
   exampleSrc = null,
+  maxSizeBytes = MAX_FILE_BYTES,
+  accept = "image/*",
 }: UploadDropzoneProps) {
   const t = useTranslations("generation");
   const [dragOver, setDragOver] = useState(false);
 
   const handleFile = useCallback(
     (file: File) => {
-      if (!file.type.startsWith("image/")) return;
+      if (accept === "image/*" && !file.type.startsWith("image/")) return;
+      if (file.size > maxSizeBytes) {
+        toast.error(t("fileTooLarge"));
+        return;
+      }
       onFile(file);
     },
-    [onFile],
+    [onFile, maxSizeBytes, accept, t],
   );
 
   const onDrop = useCallback(
@@ -63,10 +76,10 @@ export function UploadDropzone({
   if (compact) {
     return (
       <div className={cn("flex flex-col gap-1.5", className)}>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
           {label}
           {optional ? (
-            <span className="ml-1 font-normal normal-case text-white/25">
+            <span className="ml-1 font-normal normal-case text-foreground/25">
               ({t("optional")})
             </span>
           ) : null}
@@ -96,7 +109,7 @@ export function UploadDropzone({
               "relative flex aspect-3/4 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition-all duration-200",
               dragOver
                 ? "border-indigo-500/50 bg-indigo-500/10"
-                : "border-white/10 bg-white/3 hover:border-white/20 hover:bg-white/6",
+                : "border-white/10 bg-foreground/[0.03] hover:border-border hover:bg-foreground/[0.06]",
             )}
             onDragOver={(e) => {
               e.preventDefault();
@@ -108,7 +121,7 @@ export function UploadDropzone({
             <input
               id={inputId}
               type="file"
-              accept="image/*"
+              accept={accept}
               className="sr-only"
               onChange={onInput}
             />
@@ -124,7 +137,7 @@ export function UploadDropzone({
             <Upload
               className={cn(
                 "relative z-10 h-5 w-5",
-                dragOver ? "text-indigo-400" : "text-white/30",
+                dragOver ? "text-indigo-400" : "text-foreground/30",
               )}
               aria-hidden
             />
@@ -140,7 +153,7 @@ export function UploadDropzone({
       <div className="flex items-center justify-between gap-2">
         <label
           htmlFor={inputId}
-          className="text-[10px] font-semibold uppercase tracking-wider text-white/40"
+          className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40"
         >
           {label}
           {optional ? (
@@ -177,7 +190,7 @@ export function UploadDropzone({
             "relative flex aspect-[3/4] w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 transition-all duration-200",
             dragOver
               ? "border-indigo-500/50 bg-indigo-500/15 backdrop-blur-sm"
-              : "border-white/10 bg-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-sm hover:border-white/20 hover:bg-white/8",
+              : "border-white/10 bg-foreground/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm hover:border-border hover:bg-foreground/[0.08]",
           )}
           onDragOver={(e) => {
             e.preventDefault();
@@ -189,7 +202,7 @@ export function UploadDropzone({
           <input
             id={inputId}
             type="file"
-            accept="image/*"
+            accept={accept}
             className="sr-only"
             onChange={onInput}
           />
@@ -205,21 +218,21 @@ export function UploadDropzone({
           <div
             className={cn(
               "relative z-10 mb-3 flex h-11 w-11 items-center justify-center rounded-2xl",
-              dragOver ? "bg-indigo-500/20" : "bg-white/6",
+              dragOver ? "bg-indigo-500/20" : "bg-foreground/[0.06]",
             )}
           >
             <Upload
               className={cn(
                 "h-5 w-5",
-                dragOver ? "text-indigo-400" : "text-white/35",
+                dragOver ? "text-indigo-400" : "text-foreground/35",
               )}
               aria-hidden
             />
           </div>
-          <p className="relative z-10 text-center text-sm font-medium text-white/65">
+          <p className="relative z-10 text-center text-sm font-medium text-foreground/65">
             {t("dropOrClick")}
           </p>
-          <p className="relative z-10 mt-1 text-center text-[11px] text-white/30">
+          <p className="relative z-10 mt-1 text-center text-[11px] text-muted-foreground">
             {t("formats")}
           </p>
         </label>

@@ -38,7 +38,7 @@ export function ProductControlPanel({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex h-full min-h-0 flex-col rounded-3xl border border-white/10 bg-[rgb(8_8_10/0.78)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl md:p-5",
+        "flex h-full min-h-0 flex-col rounded-3xl border border-border dark:bg-[rgb(8_8_10/0.78)] bg-card/80 p-4 shadow-sm backdrop-blur-xl md:p-5",
         className,
       )}
     >
@@ -49,10 +49,12 @@ export function ProductControlPanel({ className }: { className?: string }) {
             <Layers className="h-4 w-4 text-indigo-400" aria-hidden />
           </div>
           <div>
-            <h1 className="text-base font-semibold tracking-tight text-white">
+            <h1 className="text-base font-semibold tracking-tight text-foreground">
               {t("productStudio")}
             </h1>
-            <p className="text-[11px] text-white/35">{t("navProSub")}</p>
+            <p className="text-[11px] text-muted-foreground">
+              {t("navProSub")}
+            </p>
           </div>
         </div>
       </div>

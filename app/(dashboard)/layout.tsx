@@ -9,7 +9,7 @@ export default function DashboardLayout({
 }) {
   return (
     <DashboardGuard>
-      <div className="flex h-screen overflow-hidden bg-[#080808]">
+      <div className="flex h-screen overflow-hidden bg-background">
         {/* Desktop sidebar */}
         <div className="hidden md:flex">
           <Sidebar />

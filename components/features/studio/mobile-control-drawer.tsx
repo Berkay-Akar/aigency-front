@@ -27,12 +27,12 @@ export function MobileControlDrawer({
         side="left"
         showCloseButton
         className={cn(
-          "w-full gap-0 border-white/10 bg-[rgb(8_8_10/0.94)] p-0 shadow-2xl backdrop-blur-xl sm:max-w-md",
+          "w-full gap-0 border-border dark:bg-[rgb(8_8_10/0.94)] bg-background p-0 shadow-2xl backdrop-blur-xl sm:max-w-md",
           "data-[side=left]:w-full"
         )}
       >
-        <SheetHeader className="border-b border-white/[0.06] px-5 py-4 text-left">
-          <SheetTitle className="text-base font-semibold text-white">{title}</SheetTitle>
+        <SheetHeader className="border-b border-border px-5 py-4 text-left">
+          <SheetTitle className="text-base font-semibold text-foreground">{title}</SheetTitle>
         </SheetHeader>
         <div className="max-h-[calc(100vh-4rem)] overflow-y-auto px-4 py-4">{children}</div>
       </SheetContent>

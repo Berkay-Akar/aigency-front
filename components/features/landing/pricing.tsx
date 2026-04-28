@@ -84,12 +84,12 @@ export function Pricing() {
               className={cn(
                 "relative p-8 rounded-3xl border transition-all duration-300",
                 plan.popular
-                  ? "bg-indigo-600/10 border-indigo-500/40 glow-indigo"
+                  ? "bg-indigo-500/10 border-indigo-500/40 glow-indigo"
                   : "bg-white/[0.02] border-white/[0.06] hover:border-white/[0.12]"
               )}
             >
               {plan.popular && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-indigo-600 text-white text-xs font-semibold shadow-lg shadow-indigo-500/30">
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-500/30">
                   Most popular
                 </div>
               )}
@@ -118,7 +118,7 @@ export function Pricing() {
                 className={cn(
                   "w-full rounded-2xl mb-8 font-medium py-2.5 inline-flex items-center justify-center text-sm transition-colors",
                   plan.popular
-                    ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25"
+                    ? "bg-linear-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white shadow-lg shadow-indigo-500/25"
                     : "bg-white/[0.07] hover:bg-white/[0.1] text-white border border-white/[0.08]"
                 )}
               >

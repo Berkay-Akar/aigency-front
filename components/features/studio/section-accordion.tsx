@@ -24,7 +24,7 @@ export function SectionAccordion({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-white/10 bg-white/[0.05] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm",
+        "rounded-2xl border border-border bg-foreground/[0.05] backdrop-blur-sm",
         className
       )}
     >
@@ -34,12 +34,12 @@ export function SectionAccordion({
         aria-expanded={open}
         aria-controls={`${panelId}-panel`}
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3.5 text-left transition-colors hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+        className="flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3.5 text-left transition-colors hover:bg-foreground/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
       >
-        <span className="text-sm font-medium text-white/90">{title}</span>
+        <span className="text-sm font-medium text-foreground/90">{title}</span>
         <ChevronDown
           className={cn(
-            "h-4 w-4 shrink-0 text-white/35 transition-transform duration-200",
+            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
             open && "rotate-180"
           )}
           aria-hidden
@@ -57,7 +57,7 @@ export function SectionAccordion({
             transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-white/[0.06] px-4 pb-4 pt-3">{children}</div>
+            <div className="border-t border-border px-4 pb-4 pt-3">{children}</div>
           </motion.div>
         ) : null}
       </AnimatePresence>

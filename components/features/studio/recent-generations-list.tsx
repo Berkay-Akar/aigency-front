@@ -19,7 +19,7 @@ export function RecentGenerationsList({
     return (
       <div
         className={cn(
-          "rounded-2xl border border-dashed border-white/8 px-4 py-6 text-center text-xs text-white/30",
+          "rounded-2xl border border-dashed border-border px-4 py-6 text-center text-xs text-muted-foreground",
           className,
         )}
       >
@@ -30,7 +30,7 @@ export function RecentGenerationsList({
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {t("recentGenerations")}
       </p>
       {vertical ? (
@@ -45,7 +45,7 @@ export function RecentGenerationsList({
                   false,
                 )
               }
-              className="group relative aspect-square overflow-hidden rounded-xl border border-white/8 bg-white/3 text-left transition-all hover:border-indigo-500/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+              className="group relative aspect-square overflow-hidden rounded-xl border border-border bg-foreground/[0.03] text-left transition-all hover:border-indigo-500/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
             >
               <img
                 src={item.thumb}
@@ -70,7 +70,7 @@ export function RecentGenerationsList({
                   false,
                 )
               }
-              className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-white/8 bg-white/3 text-left transition-all hover:border-indigo-500/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+              className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border bg-foreground/[0.03] text-left transition-all hover:border-indigo-500/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
             >
               <img
                 src={item.thumb}

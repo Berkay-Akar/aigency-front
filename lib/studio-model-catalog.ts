@@ -129,6 +129,55 @@ export const STUDIO_MODEL_CATALOG: Record<AiGenerationMode, StudioModeCatalog> =
         "fal-ai/veo3.1/image-to-video",
       ],
     },
+    "seedream-model-dressing": {
+      ucuz: [
+        {
+          label: "Seedream v4",
+          falModelId: "fal-ai/bytedance/seedream/v4/edit",
+        },
+      ],
+      orta: [
+        {
+          label: "Seedream v4",
+          falModelId: "fal-ai/bytedance/seedream/v4/edit",
+        },
+      ],
+      pahali: [
+        {
+          label: "Seedream v4",
+          falModelId: "fal-ai/bytedance/seedream/v4/edit",
+        },
+      ],
+      all: ["fal-ai/bytedance/seedream/v4/edit"],
+    },
+    "seedream-product-scene": {
+      ucuz: [
+        {
+          label: "Seedream v4",
+          falModelId: "fal-ai/bytedance/seedream/v4/edit",
+        },
+      ],
+      orta: [
+        {
+          label: "Seedream v4",
+          falModelId: "fal-ai/bytedance/seedream/v4/edit",
+        },
+      ],
+      pahali: [
+        {
+          label: "Seedream v4",
+          falModelId: "fal-ai/bytedance/seedream/v4/edit",
+        },
+      ],
+      all: ["fal-ai/bytedance/seedream/v4/edit"],
+    },
+    // Upscale uses its own API endpoints, not a model tier catalog
+    upscale: {
+      ucuz: [],
+      orta: [],
+      pahali: [],
+      all: [],
+    },
   } as const;
 
 export const STUDIO_PRICE_TIERS: StudioPriceTier[] = ["ucuz", "orta", "pahali"];

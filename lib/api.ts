@@ -3,7 +3,14 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from "axios";
-import { getToken, removeToken } from "./auth";
+import {
+  getActiveToken,
+  removeToken,
+  getActiveBrandId,
+  getBrandSessions,
+  addOrUpdateBrandSession,
+  setToken,
+} from "./auth";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -22,7 +29,7 @@ api.interceptors.request.use(
     const skipAuth =
       /\/auth\/(login|register|refresh)(\/|$|\?)/.test(path) ||
       /\/auth\/(login|register|refresh)(\/|$|\?)/.test(config.url ?? "");
-    const token = getToken();
+    const token = getActiveToken();
     if (token && config.headers && !skipAuth) {
       config.headers["Authorization"] = `Bearer ${token}`;
     }
@@ -31,17 +38,93 @@ api.interceptors.request.use(
   (error: AxiosError) => Promise.reject(error),
 );
 
-// Global 401 handler — clear auth and redirect to /login
+// 401 handler — try per-brand refresh first; redirect to /login only on failure
+let _isRefreshing = false;
+let _pendingQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (err: unknown) => void;
+}> = [];
+
+function processQueue(token: string | null, err: unknown) {
+  _pendingQueue.forEach((p) => (token ? p.resolve(token) : p.reject(err)));
+  _pendingQueue = [];
+}
+
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
-  (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      removeToken();
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
-      }
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
+
+    if (error.response?.status !== 401 || originalRequest._retry) {
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
+
+    // Prevent infinite loop on refresh endpoint itself
+    const isRefreshEndpoint = /\/auth\/refresh/.test(originalRequest.url ?? "");
+    if (isRefreshEndpoint) {
+      removeToken();
+      if (typeof window !== "undefined") window.location.href = "/login";
+      return Promise.reject(error);
+    }
+
+    const activeId = getActiveBrandId();
+    const session = activeId
+      ? getBrandSessions().find((s) => s.workspaceId === activeId)
+      : null;
+    const refreshToken = session?.refreshToken;
+
+    if (!refreshToken) {
+      removeToken();
+      if (typeof window !== "undefined") window.location.href = "/login";
+      return Promise.reject(error);
+    }
+
+    if (_isRefreshing) {
+      return new Promise((resolve, reject) => {
+        _pendingQueue.push({
+          resolve: (newToken) => {
+            if (originalRequest.headers)
+              originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+            resolve(api(originalRequest));
+          },
+          reject,
+        });
+      });
+    }
+
+    _isRefreshing = true;
+    originalRequest._retry = true;
+
+    try {
+      const res = await api.post<unknown>("/auth/refresh", { refreshToken });
+      const { token: newToken, refreshToken: newRefresh } = (
+        res.data as Record<string, unknown>
+      ).data
+        ? (res.data as { data: { token: string; refreshToken?: string } }).data
+        : (res.data as { token: string; refreshToken?: string });
+
+      setToken(newToken);
+      if (session) {
+        addOrUpdateBrandSession({
+          ...session,
+          token: newToken,
+          refreshToken: newRefresh ?? session.refreshToken,
+        });
+      }
+      if (originalRequest.headers)
+        originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+      processQueue(newToken, null);
+      return api(originalRequest);
+    } catch (refreshErr) {
+      processQueue(null, refreshErr);
+      removeToken();
+      if (typeof window !== "undefined") window.location.href = "/login";
+      return Promise.reject(refreshErr);
+    } finally {
+      _isRefreshing = false;
+    }
   },
 );
 
@@ -213,6 +296,305 @@ export function normalizePostsPayload(raw: unknown): Post[] {
   return [];
 }
 
+// ─── Roles & Permissions ──────────────────────────────────────────────────────
+
+export const PERMISSIONS = [
+  "MANAGE_MEMBERS",
+  "MANAGE_ROLES",
+  "MANAGE_BRAND_KIT",
+  "MANAGE_SOCIAL",
+  "MANAGE_POSTS",
+  "RUN_AI_GENERATION",
+  "CREATE_TASKS",
+  "ASSIGN_TASKS",
+  "MANAGE_TASKS",
+  "VIEW_ALL_TASKS",
+] as const;
+
+export type Permission = (typeof PERMISSIONS)[number];
+
+export interface CustomRole {
+  id: string;
+  workspaceId: string;
+  name: string;
+  color: string;
+  permissions: Permission[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const rolesApi = {
+  list: async (): Promise<CustomRole[]> => {
+    const res = await api.get<unknown>("/workspace/roles");
+    const data = unwrapApiData<{ roles: CustomRole[] }>(res.data);
+    return data?.roles ?? [];
+  },
+  create: async (payload: {
+    name: string;
+    color?: string;
+    permissions: Permission[];
+  }): Promise<CustomRole> => {
+    const res = await api.post<unknown>("/workspace/roles", payload);
+    return unwrapApiData<CustomRole>(res.data) as CustomRole;
+  },
+  update: async (
+    id: string,
+    payload: { name?: string; color?: string; permissions?: Permission[] },
+  ): Promise<CustomRole> => {
+    const res = await api.patch<unknown>(`/workspace/roles/${id}`, payload);
+    return unwrapApiData<CustomRole>(res.data) as CustomRole;
+  },
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/workspace/roles/${id}`);
+  },
+  assignToMember: async (
+    memberId: string,
+    customRoleId: string | null,
+  ): Promise<WorkspaceMember> => {
+    const res = await api.patch<unknown>(
+      `/workspace/members/${memberId}/role`,
+      { customRoleId },
+    );
+    const data = unwrapApiData<{ member: WorkspaceMember }>(res.data);
+    return data.member;
+  },
+};
+
+// ─── Tasks ────────────────────────────────────────────────────────────────────
+
+export type TaskStatus =
+  | "TODO"
+  | "IN_PROGRESS"
+  | "IN_REVIEW"
+  | "DONE"
+  | "CANCELLED";
+export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+
+export interface TaskMember {
+  id: string;
+  role: string;
+  user: { id: string; name: string; email: string };
+}
+
+export interface Task {
+  id: string;
+  workspaceId: string;
+  title: string;
+  description?: string | null;
+  status: TaskStatus;
+  priority: TaskPriority;
+  dueDate?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: TaskMember;
+  assignedTo?: TaskMember | null;
+  _count?: { notes: number };
+}
+
+export interface TaskNote {
+  id: string;
+  taskId: string;
+  memberId: string;
+  content: string;
+  editedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  member: TaskMember;
+}
+
+export interface TasksListResponse {
+  tasks: Task[];
+  pagination: { page: number; limit: number; total: number; pages: number };
+}
+
+export interface TaskNotesListResponse {
+  notes: TaskNote[];
+  pagination: { page: number; limit: number; total: number; pages: number };
+}
+
+function normalizeTasksPayload(raw: unknown): TasksListResponse {
+  const data = unwrapApiData<unknown>(raw);
+  if (data && typeof data === "object") {
+    const o = data as Record<string, unknown>;
+    if (Array.isArray(o.tasks)) {
+      return {
+        tasks: o.tasks as Task[],
+        pagination: (o.pagination as TasksListResponse["pagination"]) ?? {
+          page: 1,
+          limit: 20,
+          total: 0,
+          pages: 1,
+        },
+      };
+    }
+  }
+  return { tasks: [], pagination: { page: 1, limit: 20, total: 0, pages: 1 } };
+}
+
+export const tasksApi = {
+  list: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: TaskStatus;
+  }): Promise<TasksListResponse> => {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.status) qs.set("status", params.status);
+    const res = await api.get<unknown>(
+      `/tasks${qs.toString() ? `?${qs}` : ""}`,
+    );
+    return normalizeTasksPayload(res.data);
+  },
+  get: async (id: string): Promise<Task> => {
+    const res = await api.get<unknown>(`/tasks/${id}`);
+    return unwrapApiData<Task>(res.data) as Task;
+  },
+  create: async (payload: {
+    title: string;
+    description?: string;
+    priority?: TaskPriority;
+    dueDate?: string;
+    assignedToMemberId?: string;
+  }): Promise<Task> => {
+    const res = await api.post<unknown>("/tasks", payload);
+    return unwrapApiData<Task>(res.data) as Task;
+  },
+  update: async (
+    id: string,
+    payload: {
+      title?: string;
+      description?: string;
+      status?: TaskStatus;
+      priority?: TaskPriority;
+      dueDate?: string | null;
+    },
+  ): Promise<Task> => {
+    const res = await api.patch<unknown>(`/tasks/${id}`, payload);
+    return unwrapApiData<Task>(res.data) as Task;
+  },
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/tasks/${id}`);
+  },
+  assign: async (
+    id: string,
+    assignedToMemberId: string | null,
+  ): Promise<Task> => {
+    const res = await api.patch<unknown>(`/tasks/${id}/assign`, {
+      assignedToMemberId,
+    });
+    return unwrapApiData<Task>(res.data) as Task;
+  },
+};
+
+export const taskNotesApi = {
+  list: async (
+    taskId: string,
+    params?: { page?: number; limit?: number },
+  ): Promise<TaskNotesListResponse> => {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const res = await api.get<unknown>(
+      `/tasks/${taskId}/notes${qs.toString() ? `?${qs}` : ""}`,
+    );
+    const data = unwrapApiData<{
+      notes: TaskNote[];
+      pagination: TaskNotesListResponse["pagination"];
+    }>(res.data);
+    return {
+      notes: data?.notes ?? [],
+      pagination: data?.pagination ?? {
+        page: 1,
+        limit: 50,
+        total: 0,
+        pages: 1,
+      },
+    };
+  },
+  create: async (taskId: string, content: string): Promise<TaskNote> => {
+    const res = await api.post<unknown>(`/tasks/${taskId}/notes`, { content });
+    return unwrapApiData<TaskNote>(res.data) as TaskNote;
+  },
+  update: async (
+    taskId: string,
+    noteId: string,
+    content: string,
+  ): Promise<TaskNote> => {
+    const res = await api.patch<unknown>(`/tasks/${taskId}/notes/${noteId}`, {
+      content,
+    });
+    return unwrapApiData<TaskNote>(res.data) as TaskNote;
+  },
+  delete: async (taskId: string, noteId: string): Promise<void> => {
+    await api.delete(`/tasks/${taskId}/notes/${noteId}`);
+  },
+};
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export type NotificationType =
+  | "TASK_ASSIGNED"
+  | "TASK_STATUS_UPDATED"
+  | "TASK_COMMENTED"
+  | "MEMBER_INVITED"
+  | "MEMBER_JOINED";
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  workspaceId: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  data?: { taskId?: string } & Record<string, unknown>;
+  isRead: boolean;
+  readAt?: string | null;
+  taskId?: string | null;
+  createdAt: string;
+}
+
+export interface NotificationsListResponse {
+  notifications: AppNotification[];
+  unreadCount: number;
+  pagination: { page: number; limit: number; total: number; pages: number };
+}
+
+export const notificationsApi = {
+  list: async (params?: {
+    page?: number;
+    limit?: number;
+    unreadOnly?: boolean;
+  }): Promise<NotificationsListResponse> => {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.unreadOnly) qs.set("unreadOnly", "true");
+    const res = await api.get<unknown>(
+      `/notifications${qs.toString() ? `?${qs}` : ""}`,
+    );
+    const data = unwrapApiData<NotificationsListResponse>(res.data);
+    return data as NotificationsListResponse;
+  },
+  markRead: async (id: string): Promise<AppNotification> => {
+    const res = await api.patch<unknown>(`/notifications/${id}/read`);
+    return unwrapApiData<AppNotification>(res.data) as AppNotification;
+  },
+  markAllRead: async (): Promise<void> => {
+    await api.patch("/notifications/read-all");
+  },
+  registerDeviceToken: async (
+    token: string,
+    platform: "ios" | "android" | "web",
+  ): Promise<void> => {
+    await api.post("/notifications/device-token", { token, platform });
+  },
+  removeDeviceToken: async (token: string): Promise<void> => {
+    await api.delete("/notifications/device-token", { data: { token } });
+  },
+};
+
 // ─── Workspace ───────────────────────────────────────────────────────────────
 
 export interface Workspace {
@@ -231,14 +613,30 @@ export interface WorkspaceMember {
   email: string;
   role: string;
   joinedAt: string;
+  customRoleId?: string | null;
+  customRole?: Pick<CustomRole, "id" | "name" | "color" | "permissions"> | null;
+  // Backend may return nested user object; normalized at client boundary
+  user?: { name?: string; email?: string };
+}
+
+/** Flatten { user: { name, email } } into top-level name/email fields. */
+function normalizeSingleMember(raw: unknown): WorkspaceMember {
+  const m = raw as Record<string, unknown>;
+  const nested = m.user as { name?: string; email?: string } | undefined;
+  return {
+    ...(raw as unknown as WorkspaceMember),
+    name: ((nested?.name ?? m.name ?? "") as string) || "",
+    email: ((nested?.email ?? m.email ?? "") as string) || "",
+  };
 }
 
 function normalizeMembersPayload(raw: unknown): WorkspaceMember[] {
   const once = unwrapApiData<unknown>(raw);
-  if (Array.isArray(once)) return once;
+  if (Array.isArray(once)) return once.map(normalizeSingleMember);
   if (once && typeof once === "object") {
     const o = once as Record<string, unknown>;
-    if (Array.isArray(o.members)) return o.members as WorkspaceMember[];
+    if (Array.isArray(o.members))
+      return (o.members as unknown[]).map(normalizeSingleMember);
   }
   return [];
 }
@@ -256,8 +654,105 @@ export const workspaceApi = {
     const res = await api.get<unknown>("/workspace/members");
     return normalizeMembersPayload(res.data);
   },
-  inviteMember: (email: string) =>
-    api.post("/workspace/members/invite", { email }),
+  inviteMember: (email: string, customRoleId?: string | null) =>
+    api.post("/workspace/members/invite", {
+      email,
+      ...(customRoleId ? { customRoleId } : {}),
+    }),
+};
+
+// ─── Brands (Multi-workspace) ─────────────────────────────────────────────────
+
+export interface Brand {
+  workspaceId: string;
+  name: string;
+  slug: string;
+  role: string;
+  joinedAt: string;
+}
+
+export interface CreateBrandResponse {
+  brand: Brand;
+  token: string;
+}
+
+export const brandsApi = {
+  list: async (): Promise<Brand[]> => {
+    const res = await api.get<unknown>("/brands");
+    const data = unwrapApiData<unknown>(res.data);
+    if (Array.isArray(data)) return data as Brand[];
+    return [];
+  },
+  create: async (name: string): Promise<CreateBrandResponse> => {
+    const res = await api.post<unknown>("/brands", { name });
+    return unwrapApiData<CreateBrandResponse>(res.data) as CreateBrandResponse;
+  },
+};
+
+// ─── Brand Kit ────────────────────────────────────────────────────────────────
+
+export type BrandKitTone =
+  | "PROFESSIONAL"
+  | "LUXURY"
+  | "CASUAL"
+  | "BOLD"
+  | "MINIMALIST"
+  | "PLAYFUL";
+
+export interface BrandKit {
+  id: string;
+  workspaceId: string;
+  brandName: string | null;
+  tagline: string | null;
+  industry: string | null;
+  website: string | null;
+  description: string | null;
+  logoUrl: string | null;
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  accentColor: string | null;
+  tone: BrandKitTone | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BrandKitUpdatePayload {
+  brandName?: string;
+  tagline?: string;
+  industry?: string;
+  website?: string;
+  description?: string;
+  logoUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  tone?: BrandKitTone;
+}
+
+export interface LogoUploadResponse {
+  logoUrl: string;
+  brandKit: BrandKit;
+}
+
+export const brandKitApi = {
+  get: async (): Promise<BrandKit | null> => {
+    const res = await api.get<unknown>("/brand-kit");
+    const data = unwrapApiData<{ brandKit: BrandKit } | null>(res.data);
+    return data?.brandKit ?? null;
+  },
+  update: async (payload: BrandKitUpdatePayload): Promise<BrandKit> => {
+    const res = await api.patch<unknown>("/brand-kit", payload);
+    const data = unwrapApiData<{ brandKit: BrandKit }>(res.data);
+    return data.brandKit;
+  },
+  uploadLogo: async (file: File): Promise<LogoUploadResponse> => {
+    const form = new FormData();
+    form.append("logo", file);
+    const res = await api.post<unknown>("/brand-kit/logo", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return unwrapApiData<LogoUploadResponse>(res.data) as LogoUploadResponse;
+  },
 };
 
 // ─── Billing ─────────────────────────────────────────────────────────────────
@@ -304,7 +799,10 @@ export const billingApi = {
 export type AiGenerationMode =
   | "text-to-image"
   | "image-to-image"
-  | "image-to-video";
+  | "image-to-video"
+  | "seedream-model-dressing"
+  | "seedream-product-scene"
+  | "upscale";
 
 export type ModelTier = "fast" | "standard" | "premium";
 
@@ -331,6 +829,7 @@ export interface GeneratePayload {
   duration?: 5 | 10;
   platform?: AiPlatform;
   tone?: AiTone;
+  useBrandKit?: boolean;
 }
 
 export interface GenerateResponse {
@@ -362,6 +861,55 @@ export interface PresetPromptsResponse {
   presets: Record<string, unknown>;
 }
 
+// ─── Seedream Multi-Image Edit + Upscale ──────────────────────────────────────
+
+export interface SeedreamImageSlot {
+  key: string;
+  label: string;
+  required: boolean;
+}
+
+export interface SeedreamPreset {
+  id: string;
+  title: string;
+  useCase: string;
+  imageSlots: SeedreamImageSlot[];
+  backgroundOptions?: string[];
+}
+
+export interface SeedreamPresetsResponse {
+  presets: SeedreamPreset[];
+}
+
+export interface AssetUploadResponse {
+  url: string;
+  storageKey: string;
+}
+
+export interface SeedreamEditPayload {
+  useCase: "model-dressing" | "product-scene";
+  imageUrls: string[];
+  backgroundPrompt?: string;
+  outputFormat?: "png" | "jpeg" | "webp";
+}
+
+export interface UpscaleImagePayload {
+  imageUrl: string;
+}
+
+export interface UpscaleVideoPayload {
+  videoUrl: string;
+}
+
+export interface AsyncJobStartResponse {
+  jobId: string;
+  status: string;
+  creditsCost: number;
+  modelId: string;
+}
+
+// ─── Creative AI Generation ────────────────────────────────────────────────────
+
 export const aiApi = {
   generate: async (data: GeneratePayload) => {
     const res = await api.post<unknown>("/ai/generate", data);
@@ -391,6 +939,30 @@ export const aiApi = {
     return unwrapApiData<{ enhancedPrompt: string }>(res.data) as {
       enhancedPrompt: string;
     };
+  },
+  getSeedreamPresets: async () => {
+    const res = await api.get<unknown>("/ai/seedream-presets");
+    return unwrapApiData<SeedreamPresetsResponse>(
+      res.data,
+    ) as SeedreamPresetsResponse;
+  },
+  seedreamEdit: async (data: SeedreamEditPayload) => {
+    const res = await api.post<unknown>("/ai/seedream-edit", data);
+    return unwrapApiData<AsyncJobStartResponse>(
+      res.data,
+    ) as AsyncJobStartResponse;
+  },
+  upscaleImage: async (data: UpscaleImagePayload) => {
+    const res = await api.post<unknown>("/ai/upscale/image", data);
+    return unwrapApiData<AsyncJobStartResponse>(
+      res.data,
+    ) as AsyncJobStartResponse;
+  },
+  upscaleVideo: async (data: UpscaleVideoPayload) => {
+    const res = await api.post<unknown>("/ai/upscale/video", data);
+    return unwrapApiData<AsyncJobStartResponse>(
+      res.data,
+    ) as AsyncJobStartResponse;
   },
 };
 
@@ -445,6 +1017,7 @@ export interface ModelPhotoPayload {
   modelTier?: ModelTier;
   outputFormat?: OutputFormat;
   customPrompt?: string;
+  useBrandKit?: boolean;
 }
 
 export interface ProductAnglesPayload {
@@ -454,6 +1027,7 @@ export interface ProductAnglesPayload {
   modelTier?: ModelTier;
   outputFormat?: OutputFormat;
   customPrompt?: string;
+  useBrandKit?: boolean;
 }
 
 export interface ProductReferencePayload {
@@ -464,6 +1038,7 @@ export interface ProductReferencePayload {
   modelTier?: ModelTier;
   outputFormat?: OutputFormat;
   customPrompt?: string;
+  useBrandKit?: boolean;
 }
 
 export interface ProductSwapPayload {
@@ -473,6 +1048,7 @@ export interface ProductSwapPayload {
   modelTier?: ModelTier;
   outputFormat?: OutputFormat;
   customPrompt?: string;
+  useBrandKit?: boolean;
 }
 
 export interface GhostMannequinPayload {
@@ -481,6 +1057,7 @@ export interface GhostMannequinPayload {
   backgroundColor?: string;
   outputFormat?: OutputFormat;
   customPrompt?: string;
+  useBrandKit?: boolean;
 }
 
 export interface PhotoToVideoPayload {
@@ -489,6 +1066,7 @@ export interface PhotoToVideoPayload {
   duration?: 5 | 10;
   modelTier?: ModelTier;
   customPrompt?: string;
+  useBrandKit?: boolean;
 }
 
 export interface SingleProductJobResponse {
@@ -635,7 +1213,8 @@ export interface GenerationJob {
   modelTier: string;
   modelId: string;
   falModelId: string | null;
-  prompt: string;
+  prompt: string | null;
+  promptFinal?: string | null;
   enhancePrompt: boolean;
   aspectRatio: string | null;
   customWidth: number | null;
@@ -678,6 +1257,14 @@ export const assetsApi = {
     const res = await api.get<unknown>(`/assets?page=${page}&limit=${limit}`);
     const data = unwrapApiData<AssetsResponse>(res.data);
     return data as AssetsResponse;
+  },
+  upload: async (file: File): Promise<AssetUploadResponse> => {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await api.post<unknown>("/assets/upload", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return unwrapApiData<AssetUploadResponse>(res.data) as AssetUploadResponse;
   },
 };
 

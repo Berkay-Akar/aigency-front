@@ -1,16 +1,29 @@
 "use client";
 
-import { useState } from "react";
-import { Briefcase, Diamond, Coffee } from "lucide-react";
+import {
+  Briefcase,
+  Diamond,
+  Coffee,
+  Zap,
+  Layers,
+  Sparkles,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
+import type { BrandKitTone } from "@/lib/api";
 
-const TONES = [
+const TONES: {
+  id: BrandKitTone;
+  icon: React.ElementType;
+  color: string;
+  bg: string;
+  border: string;
+  activeBg: string;
+  activeBorder: string;
+}[] = [
   {
-    id: "professional",
+    id: "PROFESSIONAL",
     icon: Briefcase,
-    label: "Professional",
-    desc: "Clean, authoritative, trust-building",
-    example: "Elevate your business with our premium solution.",
     color: "text-indigo-400",
     bg: "bg-indigo-500/10",
     border: "border-indigo-500/30",
@@ -18,11 +31,8 @@ const TONES = [
     activeBorder: "border-indigo-500/50",
   },
   {
-    id: "luxury",
+    id: "LUXURY",
     icon: Diamond,
-    label: "Luxury",
-    desc: "Exclusive, refined, aspirational",
-    example: "Crafted for those who demand nothing but the finest.",
     color: "text-amber-400",
     bg: "bg-amber-500/10",
     border: "border-amber-500/30",
@@ -30,54 +40,85 @@ const TONES = [
     activeBorder: "border-amber-500/50",
   },
   {
-    id: "casual",
+    id: "CASUAL",
     icon: Coffee,
-    label: "Casual",
-    desc: "Friendly, relatable, conversational",
-    example: "Honestly, this is just what you've been looking for 🔥",
     color: "text-emerald-400",
     bg: "bg-emerald-500/10",
     border: "border-emerald-500/30",
     activeBg: "bg-emerald-500/15",
     activeBorder: "border-emerald-500/50",
   },
+  {
+    id: "BOLD",
+    icon: Zap,
+    color: "text-orange-400",
+    bg: "bg-orange-500/10",
+    border: "border-orange-500/30",
+    activeBg: "bg-orange-500/15",
+    activeBorder: "border-orange-500/50",
+  },
+  {
+    id: "MINIMALIST",
+    icon: Layers,
+    color: "text-slate-400",
+    bg: "bg-slate-500/10",
+    border: "border-slate-500/30",
+    activeBg: "bg-slate-500/15",
+    activeBorder: "border-slate-500/50",
+  },
+  {
+    id: "PLAYFUL",
+    icon: Sparkles,
+    color: "text-pink-400",
+    bg: "bg-pink-500/10",
+    border: "border-pink-500/30",
+    activeBg: "bg-pink-500/15",
+    activeBorder: "border-pink-500/50",
+  },
 ];
 
-export function ToneSelector() {
-  const [active, setActive] = useState("professional");
+interface ToneSelectorProps {
+  value: BrandKitTone | null;
+  onChange: (tone: BrandKitTone) => void;
+}
 
+export function ToneSelector({ value, onChange }: ToneSelectorProps) {
+  const t = useTranslations("brandKit");
   return (
-    <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/[0.06]">
-      <h3 className="text-sm font-semibold text-white mb-1">Brand Tone</h3>
-      <p className="text-xs text-white/30 mb-5">
-        How should Aigencys write captions for your brand?
-      </p>
+    <div className="p-6 rounded-3xl bg-card border border-border">
+      <h3 className="text-sm font-semibold text-foreground mb-1">
+        {t("toneTitle")}
+      </h3>
+      <p className="text-xs text-muted-foreground mb-5">{t("toneDesc")}</p>
 
       <div className="space-y-3">
-        {TONES.map(({ id, icon: Icon, label, desc, example, color, bg, border, activeBg, activeBorder }) => {
-          const isActive = active === id;
+        {TONES.map(({ id, icon: Icon, color, bg, activeBg, activeBorder }) => {
+          const isActive = value === id;
+          const label = t(`tone.${id}.label` as Parameters<typeof t>[0]);
+          const desc = t(`tone.${id}.desc` as Parameters<typeof t>[0]);
+          const example = t(`tone.${id}.example` as Parameters<typeof t>[0]);
           return (
             <button
               key={id}
-              onClick={() => setActive(id)}
+              onClick={() => onChange(id)}
               className={cn(
                 "w-full text-left p-4 rounded-2xl border transition-all duration-200",
                 isActive
                   ? `${activeBg} ${activeBorder}`
-                  : "border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.03] hover:border-white/[0.1]"
+                  : "border-border bg-card hover:bg-muted/40 hover:border-border/60",
               )}
             >
               <div className="flex items-start gap-3">
                 <div
                   className={cn(
-                    "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0",
-                    isActive ? bg : "bg-white/[0.05]"
+                    "w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
+                    isActive ? bg : "bg-white/5",
                   )}
                 >
                   <Icon
                     className={cn(
                       "w-4 h-4",
-                      isActive ? color : "text-white/30"
+                      isActive ? color : "text-muted-foreground/40",
                     )}
                   />
                 </div>
@@ -86,7 +127,7 @@ export function ToneSelector() {
                     <span
                       className={cn(
                         "text-sm font-semibold",
-                        isActive ? "text-white" : "text-white/50"
+                        isActive ? "text-foreground" : "text-foreground/50",
                       )}
                     >
                       {label}
@@ -96,7 +137,7 @@ export function ToneSelector() {
                         className={cn(
                           "text-[10px] font-medium px-2 py-0.5 rounded-full",
                           bg,
-                          color
+                          color,
                         )}
                       >
                         Active
@@ -106,7 +147,9 @@ export function ToneSelector() {
                   <p
                     className={cn(
                       "text-xs mb-2",
-                      isActive ? "text-white/40" : "text-white/20"
+                      isActive
+                        ? "text-muted-foreground"
+                        : "text-muted-foreground/50",
                     )}
                   >
                     {desc}
@@ -114,7 +157,9 @@ export function ToneSelector() {
                   <p
                     className={cn(
                       "text-xs italic",
-                      isActive ? "text-white/60" : "text-white/20"
+                      isActive
+                        ? "text-foreground/60"
+                        : "text-muted-foreground/40",
                     )}
                   >
                     &ldquo;{example}&rdquo;

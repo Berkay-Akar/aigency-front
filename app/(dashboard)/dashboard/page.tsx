@@ -17,14 +17,14 @@ import { useWorkspaceData } from "@/hooks/use-workspace-data";
 import { useAuthStore } from "@/store/auth-store";
 import { postsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 function SkeletonCard() {
-  return (
-    <div className="skeleton h-32 rounded-3xl" />
-  );
+  return <div className="skeleton h-32 rounded-3xl" />;
 }
 
 export default function DashboardPage() {
+  const t = useTranslations("dashboard");
   const { user } = useAuthStore();
   const { workspace, balance, health, isLoading } = useWorkspaceData();
 
@@ -36,7 +36,11 @@ export default function DashboardPage() {
   const firstName = user?.name?.split(" ")[0] ?? "there";
   const hour = new Date().getHours();
   const greeting =
-    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+    hour < 12
+      ? t("goodMorning")
+      : hour < 18
+        ? t("goodAfternoon")
+        : t("goodEvening");
 
   const scheduledCount =
     posts?.filter((p) => p.status === "SCHEDULED").length ?? 0;
@@ -45,7 +49,7 @@ export default function DashboardPage() {
 
   const CARDS = [
     {
-      label: "Credits Remaining",
+      label: t("creditsRemaining"),
       value:
         balance != null && typeof balance.credits === "number"
           ? balance.credits.toLocaleString()
@@ -57,7 +61,7 @@ export default function DashboardPage() {
       bg: "bg-indigo-500/10",
     },
     {
-      label: "Posts Published",
+      label: t("postsPublished"),
       value: String(publishedCount),
       change: `+${publishedCount}`,
       trend: "up" as const,
@@ -66,18 +70,18 @@ export default function DashboardPage() {
       bg: "bg-violet-500/10",
     },
     {
-      label: "Scheduled",
+      label: t("scheduled"),
       value: String(scheduledCount),
-      change: `${scheduledCount} upcoming`,
+      change: t("upcoming", { count: scheduledCount }),
       trend: "up" as const,
       icon: Users,
       color: "text-amber-400",
       bg: "bg-amber-500/10",
     },
     {
-      label: "Hours Saved",
+      label: t("hoursSaved"),
       value: posts ? `${Math.floor(posts.length * 0.75)}h` : "—",
-      change: "this month",
+      change: t("thisMonth"),
       trend: "up" as const,
       icon: Clock,
       color: "text-emerald-400",
@@ -90,11 +94,11 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white mb-1">
+          <h1 className="text-xl md:text-2xl font-bold text-foreground mb-1">
             {greeting}, {firstName} 👋
           </h1>
-          <div className="flex items-center gap-2 text-sm text-white/40">
-            <span>{workspace?.name ?? "Loading workspace…"}</span>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>{workspace?.name ?? t("loadingWorkspace")}</span>
             {health && (
               <>
                 <span className="text-white/20">·</span>
@@ -103,7 +107,7 @@ export default function DashboardPage() {
                     "flex items-center gap-1",
                     health.status === "ok"
                       ? "text-emerald-400"
-                      : "text-amber-400"
+                      : "text-amber-400",
                   )}
                 >
                   {health.status === "ok" ? (
@@ -123,9 +127,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-          : CARDS.map((card) => (
-              <AnalyticsCard key={card.label} {...card} />
-            ))}
+          : CARDS.map((card) => <AnalyticsCard key={card.label} {...card} />)}
       </div>
 
       {/* Quick actions */}
@@ -139,7 +141,7 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-white/40 uppercase tracking-wider">
-              Upcoming Posts
+              {t("upcomingPosts")}
             </h2>
           </div>
           <div className="space-y-2">
@@ -149,7 +151,7 @@ export default function DashboardPage() {
               .map((post) => (
                 <div
                   key={post.id}
-                  className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] transition-colors"
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-card border border-border hover:bg-muted/30 transition-colors"
                 >
                   {post.imageUrl && (
                     <img
@@ -159,10 +161,10 @@ export default function DashboardPage() {
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white/70 font-medium truncate">
+                    <p className="text-sm text-foreground/70 font-medium truncate">
                       {post.caption}
                     </p>
-                    <p className="text-xs text-white/30 mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {post.scheduledAt
                         ? new Date(post.scheduledAt).toLocaleString("en-US", {
                             month: "short",
@@ -175,7 +177,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <div className="px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium flex-shrink-0">
-                    Scheduled
+                    {t("scheduledBadge")}
                   </div>
                 </div>
               ))}

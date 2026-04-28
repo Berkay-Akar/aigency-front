@@ -32,7 +32,7 @@ function liquidPill(active: boolean) {
     "rounded-xl border px-2 py-2.5 text-center text-[11px] font-medium backdrop-blur-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 sm:text-xs",
     active
       ? "border-indigo-500/50 bg-indigo-500/25 text-indigo-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
-      : "border-white/10 bg-white/[0.05] text-white/50 hover:border-white/15 hover:bg-white/[0.08] hover:text-white/75",
+      : "border-border bg-foreground/[0.05] text-foreground/50 hover:border-border hover:bg-foreground/[0.08] hover:text-foreground/75",
   );
 }
 
@@ -71,7 +71,7 @@ export function StudioModelPicker({
   return (
     <div className="space-y-4">
       <div>
-        <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
+        <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {t("tierSection")}
         </Label>
         <div className="grid grid-cols-3 gap-2">
@@ -89,7 +89,7 @@ export function StudioModelPicker({
       </div>
 
       <div>
-        <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
+        <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {t("modelNameLabel")}
         </Label>
         <Select
@@ -98,7 +98,7 @@ export function StudioModelPicker({
         >
           <SelectTrigger
             size="default"
-            className="h-10 w-full text-sm text-white data-placeholder:text-white/40"
+            className="h-10 w-full text-sm text-foreground data-placeholder:text-foreground/40"
           >
             <SelectValue placeholder={t("modelNameLabel")}>
               {(v) =>

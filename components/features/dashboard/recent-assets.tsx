@@ -8,6 +8,7 @@ import { assetsApi, type Asset } from "@/lib/api";
 import { downloadAsBlob } from "@/lib/utils";
 import { useStudioStore } from "@/store/studio-store";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 const PLATFORM_ICONS: Record<string, React.ReactNode> = {
   instagram: <Instagram className="w-3 h-3" />,
@@ -24,6 +25,7 @@ const PLATFORM_ICONS: Record<string, React.ReactNode> = {
 };
 
 export function RecentAssets() {
+  const t = useTranslations("recentAssets");
   const { data, isLoading } = useQuery({
     queryKey: ["assets", 1, 6],
     queryFn: () => assetsApi.list(1, 6),
@@ -46,7 +48,7 @@ export function RecentAssets() {
         `aigencys-${asset.id.slice(0, 8)}.${ext}`,
       );
     } catch {
-      toast.error("Download failed");
+      toast.error(t("downloadFailed"));
     }
   }
 
@@ -54,14 +56,14 @@ export function RecentAssets() {
     <>
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-white/40 uppercase tracking-wider">
-            Recent Assets
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            {t("sectionTitle")}
           </h2>
           <Link
             href="/assets"
             className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
           >
-            View all
+            {t("viewAll")}
             <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
@@ -100,7 +102,7 @@ export function RecentAssets() {
                   <button
                     type="button"
                     onClick={() => handleOpenInStudio(asset)}
-                    title="Stüdyoda Gör"
+                    title={t("openInStudio")}
                     className="w-7 h-7 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
                   >
                     <ExternalLink className="w-3 h-3" />
@@ -109,8 +111,8 @@ export function RecentAssets() {
               </div>
             ))
           ) : (
-            <div className="col-span-6 py-8 text-center text-white/30 text-sm">
-              No assets yet — generate something in Studio.
+            <div className="col-span-6 py-8 text-center text-muted-foreground text-sm">
+              {t("noAssets")}
             </div>
           )}
         </div>

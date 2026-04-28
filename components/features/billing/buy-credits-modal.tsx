@@ -89,12 +89,12 @@ export function BuyCreditsModal({
                 className={cn(
                   "relative rounded-2xl border p-4 transition-colors",
                   pkg.popular
-                    ? "border-indigo-500/40 bg-indigo-600/[0.12]"
+                    ? "border-indigo-500/40 bg-indigo-500/[0.12]"
                     : "border-white/[0.08] bg-white/[0.04] hover:border-white/15"
                 )}
               >
                 {pkg.popular ? (
-                  <div className="absolute -top-2.5 left-4 rounded-full bg-indigo-600 px-2.5 py-0.5 text-[10px] font-semibold text-white">
+                  <div className="absolute -top-2.5 left-4 rounded-full bg-indigo-500 px-2.5 py-0.5 text-[10px] font-semibold text-white">
                     {t("bestValue")}
                   </div>
                 ) : null}
@@ -117,7 +117,7 @@ export function BuyCreditsModal({
                     className={cn(
                       "shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors",
                       pkg.popular
-                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25 hover:bg-indigo-500"
+                        ? "bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 hover:bg-indigo-400"
                         : "border border-white/10 bg-white/[0.08] text-white hover:bg-white/[0.12]"
                     )}
                   >

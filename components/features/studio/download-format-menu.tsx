@@ -57,7 +57,7 @@ export function DownloadFormatMenu({
           "group flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition-all duration-200 disabled:opacity-50 cursor-default",
           highlight
             ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-200 hover:bg-indigo-500/20"
-            : "border-white/8 bg-white/4 text-white/50 hover:border-white/15 hover:bg-white/8 hover:text-white/80",
+            : "border-border bg-foreground/[0.04] text-foreground/50 hover:border-border hover:bg-foreground/[0.08] hover:text-foreground/80",
           className,
         )}
         title={label ?? "İndir"}

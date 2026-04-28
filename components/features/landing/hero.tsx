@@ -20,7 +20,7 @@ export function Hero() {
       />
 
       {/* Glow orbs */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-indigo-600/[0.08] blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-indigo-500/[0.08] blur-[120px] pointer-events-none" />
       <div className="absolute top-1/2 left-1/4 w-[300px] h-[300px] rounded-full bg-violet-600/[0.06] blur-[100px] pointer-events-none" />
 
       <div className="relative z-10 max-w-5xl mx-auto text-center">
@@ -49,7 +49,7 @@ export function Hero() {
         <div className="flex items-center justify-center gap-4 mb-20 animate-fade-in-up animate-delay-300">
           <Link
             href="/studio"
-            className="inline-flex items-center h-12 px-8 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-base font-semibold shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:shadow-indigo-500/40 hover:-translate-y-0.5"
+            className="inline-flex items-center h-12 px-8 bg-linear-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white rounded-2xl text-base font-semibold shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:shadow-indigo-500/40 hover:-translate-y-0.5"
           >
             Start creating free
             <ArrowRight className="ml-2 w-4 h-4" />

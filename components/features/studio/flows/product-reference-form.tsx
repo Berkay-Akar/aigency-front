@@ -14,7 +14,7 @@ function ResolutionToggle() {
   const setProductResolution = useStudioStore((s) => s.setProductResolution);
   return (
     <div>
-      <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
+      <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {t("resolution")}
       </Label>
       <div className="flex gap-2">
@@ -27,7 +27,7 @@ function ResolutionToggle() {
               "flex-1 rounded-xl border py-2 text-sm font-semibold transition-all",
               productResolution === r
                 ? "liquid-chip liquid-chip-active"
-                : "liquid-chip text-white/45",
+                : "liquid-chip text-foreground/45",
             )}
           >
             {r}{" "}
@@ -78,7 +78,7 @@ export function ProductReferenceForm() {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.22 }}
     >
-      <p className="text-xs leading-relaxed text-white/40">
+      <p className="text-xs leading-relaxed text-muted-foreground">
         {t("referenceDesc")}
       </p>
 
@@ -115,7 +115,7 @@ export function ProductReferenceForm() {
 
       {/* Style mode */}
       <div>
-        <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
+        <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {t("style")}
         </Label>
         <div className="flex gap-2">
@@ -141,7 +141,7 @@ export function ProductReferenceForm() {
                 "flex flex-1 flex-col items-center gap-0.5 rounded-xl border py-3 text-sm font-semibold transition-all",
                 productReferenceStyleMode === id
                   ? "liquid-chip liquid-chip-active"
-                  : "liquid-chip text-white/40",
+                  : "liquid-chip text-foreground/40",
               )}
             >
               {t(labelKey)}
@@ -149,8 +149,8 @@ export function ProductReferenceForm() {
                 className={cn(
                   "text-[10px] font-normal",
                   productReferenceStyleMode === id
-                    ? "text-indigo-300/70"
-                    : "text-white/25",
+                    ? "text-indigo-700/70 dark:text-indigo-300/70"
+                    : "text-foreground/25",
                 )}
               >
                 {t(descKey)}
@@ -163,9 +163,11 @@ export function ProductReferenceForm() {
       <ResolutionToggle />
 
       <div>
-        <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
+        <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {t("extraDirective")}{" "}
-          <span className="text-white/25">{t("extraDirectiveOptional")}</span>
+          <span className="text-muted-foreground">
+            {t("extraDirectiveOptional")}
+          </span>
         </Label>
         <Textarea
           value={productCustomPrompt}
@@ -173,15 +175,15 @@ export function ProductReferenceForm() {
           rows={3}
           maxLength={500}
           placeholder="desert sand dunes, golden hour…"
-          className="resize-none rounded-2xl border-white/10 bg-white/4 text-white placeholder:text-white/25 backdrop-blur-sm focus-visible:border-indigo-500/30 focus-visible:ring-indigo-500/20"
+          className="resize-none rounded-2xl border-border bg-foreground/[0.04] text-foreground placeholder:text-foreground/30 backdrop-blur-sm focus-visible:border-indigo-500/30 focus-visible:ring-indigo-500/20"
         />
       </div>
 
       {/* Credit estimate + generate */}
       <div className="space-y-3">
-        <p className="text-center text-[11px] text-white/40">
+        <p className="text-center text-[11px] text-muted-foreground">
           {t("estimatedCredits")}:{" "}
-          <span className="font-semibold text-indigo-300">
+          <span className="font-semibold text-indigo-500 dark:text-indigo-300">
             {creditEstimate}
           </span>
         </p>
@@ -194,7 +196,7 @@ export function ProductReferenceForm() {
             !productReferenceImageUrl
           }
           onClick={() => void startProductGeneration()}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-indigo-600 to-violet-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-900/30 transition hover:from-indigo-500 hover:to-violet-500 disabled:pointer-events-none disabled:opacity-45"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-indigo-500 to-violet-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-900/30 transition hover:from-indigo-500 hover:to-violet-500 disabled:pointer-events-none disabled:opacity-45"
         >
           {isGenerating ? t("generating") : t("applyReferenceStyle")}
         </button>
